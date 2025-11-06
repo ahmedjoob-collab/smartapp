@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+{% block title %}إدارة المستخدمين{% endblock %}
+{% block content %}
+<h2 class="text-center mb-4">إدارة المستخدمين</h2>
+
+<!-- إضافة مستخدم جديد -->
+<form method="POST" action="{{ url_for('user_management.add_user') }}" class="mb-4 border p-3 rounded bg-light">
+    <h5>إضافة مستخدم جديد</h5>
+    <div class="row g-2">
+        <div class="col-md-4">
+            <input type="text" name="username" class="form-control" placeholder="اسم المستخدم" required>
+        </div>
+        <div class="col-md-4">
+            <input type="password" name="password" class="form-control" placeholder="كلمة المرور" required>
+        </div>
+        <div class="col-md-4">
+            <select name="role" class="form-select" required>
+                <option value="" disabled selected>اختر الدور</option>
+                <option value="admin">مدير (admin)</option>
+                <option value="support">الدعم الفني</option>
+                <option value="trader">خدمات التجار</option>
+            </select>
+        </div>
+        <div class="col-12 text-end">
+            <button type="submit" class="btn btn-success mt-2">إضافة</button>
+        </div>
+    </div>
+</form>
+
+<!-- عرض المستخدمين -->
+<table class="table table-bordered">
+    <thead>
+        <tr><th>#</th><th>اسم المستخدم</th><th>الدور</th><th>تعديل الدور</th><th>حذف</th><td>
+                <form method="POST" action="{{ url_for('user_management.update_password', user_id=user.id) }}">
+                    <div class="input-group input-group-sm">
+                        <input type="password" name="new_password" class="form-control" placeholder="كلمة مرور جديدة" required>
+                        <button class="btn btn-secondary btn-sm" type="submit">تحديث</button>
+                    </div>
+                </form>
+            </td>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ user.username }}</td>
+            <td>{{ user.role }}</td>
+            <td>
+                <form method="POST" action="{{ url_for('user_management.update_role', user_id=user.id) }}">
+                    <select name="role" class="form-select form-select-sm d-inline w-auto" onchange="this.form.submit()">
+                        <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>مدير</option>
+                        <option value="support" {% if user.role == 'support' %}selected{% endif %}>دعم فني</option>
+                        <option value="trader" {% if user.role == 'trader' %}selected{% endif %}>خدمات التجار</option>
+                    </select>
+                </form>
+            </td>
+            <td>
+                <form method="POST" action="{{ url_for('user_management.delete_user', user_id=user.id) }}" onsubmit="return confirm('هل أنت متأكد من حذف المستخدم؟');">
+                    <button class="btn btn-danger btn-sm">حذف</button>
+                </form>
+            </td>
+        <td>
+                <form method="POST" action="{{ url_for('user_management.update_password', user_id=user.id) }}">
+                    <div class="input-group input-group-sm">
+                        <input type="password" name="new_password" class="form-control" placeholder="كلمة مرور جديدة" required>
+                        <button class="btn btn-secondary btn-sm" type="submit">تحديث</button>
+                    </div>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

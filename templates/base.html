@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+    <!-- PWA --><link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/app-icon-192.png') }}">
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>{% block title %}Smart Branch Admin{% endblock %}</title>
+
+    <!-- Bootstrap RTL (CSS فقط) --><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css">
+    <!-- Font Awesome --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <!-- Favicon --><link rel="icon" href="{{ url_for('static', filename='images/icon.ico') }}">
+
+    <style>
+        /* تعريف خط Almarai لضمان قراءة جيدة ومتناسقة */
+        @import url('https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700&display=swap');
+        body { font-family: 'Almarai', sans-serif; }
+
+        /* الشعار أعلى الشريط */
+        .navbar-brand img { height: 40px; }
+
+        /* تغليف جداول البيانات (إطار حول الجدول) */
+        .data-table-wrap {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: .5rem;
+            overflow: hidden;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); /* ظل خفيف */
+        }
+        table.data-table { margin-bottom: 0; }
+
+        /* رؤوس الأعمدة: توسيط وخط فاصل واضح */
+        table.data-table thead th {
+            background: #f8fafc; /* خلفية فاتحة */
+            font-weight: 700;
+            text-align: center;
+            vertical-align: middle;
+            border-bottom: 2px solid #dee2e6;
+            white-space: nowrap;
+        }
+        /* خلايا الجدول: توسيط رأسي/أفقي */
+        table.data-table tbody td {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        /* أزرار الشريط العلوي */
+        .navbar .btn {
+            height: 38px; /* ارتفاع ثابت للأزرار */
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+        }
+
+        /* رسائل فلاش متناسقة */
+        .flash-wrap .alert { padding: .75rem 1.25rem; border-radius: .5rem; }
+
+        /* الفوتر الاحترافي (Designed by) */
+        .footer-design {
+            border-top: 1px solid #e5e7eb; /* خط فاصل خفيف */
+        }
+        .footer-design img.designer-logo {
+            height: 52px; /* تم تكبير الشعار أكثر */
+            object-fit: contain;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+        }
+        .footer-design img.designer-logo:hover {
+             opacity: 1;
+        }
+        .footer-design small {
+            color: #6b7280; /* لون رمادي داكن */
+            font-size: 0.95rem; /* حجم نص مناسب للشعار الأكبر */
+        }
+        /* تعديل الفوتر ليكون النص على اليسار والشعار على اليمين في أقصى الأطراف */
+        .footer-content {
+            display: flex;
+            justify-content: space-between; /* يوزع العناصر على أقصى الأطراف */
+            align-items: center;
+            flex-wrap: wrap; /* للتعامل مع الشاشات الصغيرة */
+        }
+        .footer-content .designer-text {
+            order: 0; /* النص أولاً على اليسار (في RTL) */
+        }
+        .footer-content .designer-logo {
+            order: 1; /* الشعار ثانياً على اليمين (في RTL) */
+        }
+        /* تعديلات للفوتر على الشاشات الصغيرة لضمان التناسق */
+        @media (max-width: 576px) {
+            .footer-content {
+                flex-direction: column; /* ترتيب عمودي على الشاشات الصغيرة */
+                align-items: center;
+                gap: 10px;
+            }
+            .footer-content .designer-text,
+            .footer-content .designer-logo {
+                order: unset; /* إلغاء ترتيب الـ order */
+            }
+        }
+    </style>
+
+    {% block head_extra %}{% endblock %}
+
+    <!-- تسجيل Service Worker --><script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("{{ url_for('static', filename='service-worker.js') }}")
+          .catch(console.error);
+      });
+    }
+    </script>
+</head>
+
+<body class="bg-light">
+
+    <!-- مودال التذكير + الصوت (العناصر موجودة في الـbody) --><div class="modal fade" id="reminderModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-warning-subtle">
+            <h5 class="modal-title">تذكير</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+          </div>
+          <div class="modal-body">
+            <div id="reminderBody" class="mb-2 fs-5 fw-bold"></div>
+            <div class="small text-muted" id="reminderMeta"></div>
+          </div>
+          <div class="modal-footer">
+            <form id="reminderDismissForm" method="post" class="d-inline">
+              <input type="hidden" name="id" id="reminderIdDismiss">
+              <button type="submit" class="btn btn-outline-secondary">إغلاق</button>
+            </form>
+            <form id="reminderSnoozeForm" method="post" class="d-inline">
+              <input type="hidden" name="id" id="reminderIdSnooze">
+              <input type="hidden" name="mins" value="30">
+              <button type="submit" class="btn btn-primary">تذكيري لاحقًا (30 دقيقة)</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    <audio id="reminderSound" src="{{ url_for('static', filename='sounds/reminder.wav') }}" preload="auto"></audio>
+
+    <!-- شريط التنقل العلوي --><nav class="navbar navbar-expand-lg bg-white border-bottom shadow-sm sticky-top">
+      <div class="container-fluid">
+        <!-- شعار فقط بدون نص --><a class="navbar-brand d-flex align-items-center" href="{{ url_for('main_bp.dashboard') }}">
+          <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo">
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topbar" aria-controls="topbar" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div id="topbar" class="collapse navbar-collapse justify-content-end">
+          <div class="d-flex flex-wrap gap-2 py-2 py-lg-0">
+            <!-- رجوع للصفحة السابقة --><button class="btn btn-sm btn-outline-dark" onclick="window.history.back()">
+              <i class="fas fa-arrow-right"></i> رجوع
+            </button>
+
+            <!-- الصفحة الرئيسية --><a class="btn btn-sm btn-outline-primary" href="{{ url_for('main_bp.dashboard') }}">
+              <i class="fas fa-home"></i> الرئيسية
+            </a>
+
+            {% if current_user.is_authenticated %}
+              <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('auth_bp.logout') }}">
+                <i class="fas fa-right-from-bracket"></i> خروج
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container py-4">
+      {% block page_toolbar %}{% endblock %}
+
+      <!-- رسائل فلاش --><div class="flash-wrap mb-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, msg in messages %}
+              <div class="alert alert-{{ 'warning' if category=='message' else category }} mb-2" role="alert">
+                {{ msg }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+      </div>
+
+      <!-- محتوى الصفحة -->{% block content %}{% endblock %}
+
+      <!-- فوتر --><footer class="footer-design py-3 mt-5">
+        <div class="container"> <!-- استخدم container لجعل الفوتر متناسق مع بقية المحتوى --><div class="footer-content">
+                <!-- النص على اليسار --><small class="text-secondary designer-text">Designed by</small>
+                <!-- الشعار على اليمين --><img class="designer-logo" src="{{ url_for('static', filename='images/Software designer logo.jpg') }}" alt="Designer Logo">
+            </div>
+        </div>
+      </footer>
+    </main>
+
+    <!-- Bootstrap JS (لازم ييجي قبل سكربت التذكير) --><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- سكربت التذكير — بعد Bootstrap --><script>
+    (function(){
+      // انتظر حتى DOM + Bootstrap يبقوا جاهزين
+      function ready(fn) {
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+          setTimeout(fn, 0);
+        } else {
+          document.addEventListener('DOMContentLoaded', fn);
+        }
+      }
+
+      ready(function(){
+        // لو bootstrap لسه مش مُحمّل (بسبب شبكة بطيئة) نعيد المحاولة
+        function waitForBootstrap(cb, tries=20){
+          if (typeof bootstrap !== 'undefined' && bootstrap.Modal) return cb();
+          if (tries <= 0) return; // هنسكت لو معندناش Bootstrap
+          setTimeout(()=>waitForBootstrap(cb, tries-1), 300);
+        }
+
+        waitForBootstrap(function(){
+          const modalEl   = document.getElementById('reminderModal');
+          // التأكد من وجود المودال قبل إنشائه
+          if (!modalEl) return;
+
+          const modal     = new bootstrap.Modal(modalEl, {backdrop:'static', keyboard:false});
+          const bodyEl    = document.getElementById('reminderBody');
+          const metaEl    = document.getElementById('reminderMeta');
+          const idDismiss = document.getElementById('reminderIdDismiss');
+          const idSnooze  = document.getElementById('reminderIdSnooze');
+          const audioEl   = document.getElementById('reminderSound');
+
+          let activeReminderId = null;
+          let polling = false;
+
+          function stopSound() {
+            try { audioEl.pause(); audioEl.currentTime = 0; } catch(e){}
+          }
+          function showReminder(r) {
+            // منع تكرار نفس التذكير
+            if (activeReminderId && activeReminderId === r.id) return;
+            activeReminderId = r.id;
+
+            idDismiss.value = r.id;
+            idSnooze.value  = r.id;
+            bodyEl.textContent = r.message || '(بدون رسالة)';
+            metaEl.textContent = `الموعد: ${r.at} — ${r.name || ''} ${r.code ? ' | كود: '+r.code : ''} ${r.work_type ? ' | نوع: '+r.work_type : ''}`;
+            stopSound();
+            // تشغيل الصوت، وإذا فشل (لتجنب أخطاء المتصفح) يتم إغفال الخطأ
+            audioEl.play().catch(()=>{});
+            modal.show();
+          }
+          function hideReminder() {
+            stopSound();
+            modal.hide();
+            activeReminderId = null;
+            // تنظيف أي Backdrop عالق (قد يحدث في بيئات الـ iframe)
+            setTimeout(()=>document.querySelectorAll('.modal-backdrop').forEach(b=>b.remove()), 150);
+          }
+          async function poll() {
+            // لا تستمر إذا كان هناك تذكير نشط بالفعل
+            if (polling || activeReminderId) return;
+            polling = true;
+            try {
+              const res = await fetch("{{ url_for('support_bp.reminders_poll') }}", {credentials:'same-origin'});
+              const data = await res.json();
+              if (data && data.ok && data.reminder) showReminder(data.reminder);
+            } catch (e) {/* تجاهل أخطاء الشبكة المؤقتة */}
+            finally { polling = false; }
+          }
+
+          // أزرار المودال
+          document.getElementById('reminderDismissForm').addEventListener('submit', async (e)=>{
+            e.preventDefault();
+            stopSound();
+            const fd = new FormData(e.target);
+            try {
+              await fetch("{{ url_for('support_bp.reminders_dismiss') }}", {method:'POST', body:fd, credentials:'same-origin'});
+            } catch(e){}
+            hideReminder();
+          });
+          document.getElementById('reminderSnoozeForm').addEventListener('submit', async (e)=>{
+            e.preventDefault();
+            stopSound();
+            const fd = new FormData(e.target);
+            try {
+              await fetch("{{ url_for('support_bp.reminders_snooze') }}", {method:'POST', body:fd, credentials:'same-origin'});
+            } catch(e){}
+            hideReminder();
+          });
+
+          // تأكد من إيقاف الصوت عند أي إغلاق للمودال
+          modalEl.addEventListener('hidden.bs.modal', stopSound);
+
+          // جدولة الاستطلاع: محاولة أولى بعد 2 ثوانٍ لالتقاط المتأخر، ثم محاذاة عند بداية كل دقيقة
+          setTimeout(poll, 2000);
+          (function scheduleMinuteAligned(){
+            const now = new Date();
+            const msUntilNextMinute = ((60 - now.getSeconds()) * 1000) - now.getMilliseconds();
+            setTimeout(function tick(){
+              poll();
+              // بعد التنفيذ عند بداية الدقيقة، جدولة التالي بعد 60 ثانية بالضبط
+              setTimeout(tick, 60000);
+            }, Math.max(0, msUntilNextMinute));
+          })();
+        });
+      });
+    })();
+    </script>
+
+    <script>
+      // إخفاء رسائل الفلاش تلقائيًا بعد 4 ثوانٍ
+      // التأكد من أن الرسالة موجودة قبل محاولة إزالتها لتجنب الأخطاء
+      setTimeout(() => {
+        document.querySelectorAll('.flash-wrap .alert').forEach(el => {
+          // نضيف خطأ بسيط للتأكد من أن الكائن موجود وغير محذوف
+          if (el && el.parentElement) {
+            el.classList.add('fade', 'show');
+            setTimeout(() => el.remove(), 400);
+          }
+        });
+      }, 4000);
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

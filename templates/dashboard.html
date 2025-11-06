@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}لوحة التحكم{% endblock %}
+
+{% block content %}
+<!-- رأس الصفحة والتحكم -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">لوحة التحكم</h1>
+  <div class="d-flex gap-2">
+    <!-- الزر الجديد لتغيير كلمة المرور -->
+    <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+      <i class="fas fa-key"></i> تغيير كلمة المرور
+    </button>
+    
+    <a class="btn btn-light" href="{{ url_for('main_bp.dashboard') }}">
+      <i class="fas fa-home"></i> الصفحة الرئيسية
+    </a>
+  </div>
+</div>
+
+<!-- نموذج الخدمات -->
+<div class="row g-3">
+  {% for s in sections %}
+    <div class="col-12 col-sm-6 col-lg-4">
+      {% if not s.disabled and s.url %}
+        <a href="{{ s.url }}" class="text-decoration-none {% if s.title == 'الاستعلام' %}inquiry-popup-link{% endif %}">
+          <div class="card h-100 shadow-sm border-0">
+            <div class="card-body d-flex align-items-center gap-3">
+              <div class="badge bg-{{ s.badge }} p-3 rounded-circle">
+                <i class="{{ s.icon }}"></i>
+              </div>
+              <div class="flex-grow-1">
+                <div class="h5 mb-1">{{ s.title }}</div>
+                <div class="text-muted small mb-0">{{ s.description }}</div>
+              </div>
+              <!-- تعديل الأيقونة للـ RTL -->
+              <i class="fas fa-arrow-left text-muted" style="transform: scaleX(-1);"></i>
+            </div>
+          </div>
+        </a>
+      {% else %}
+        <div class="card h-100 shadow-sm border-0 opacity-50"
+              style="pointer-events:none; cursor:not-allowed;"
+              aria-disabled="true"
+              title="غير مفعّل لهذا المستخدم">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="badge bg-{{ s.badge }} p-3 rounded-circle">
+              <i class="{{ s.icon }}"></i>
+            </div>
+            <div class="flex-grow-1">
+              <div class="h5 mb-1">{{ s.title }}</div>
+              <div class="text-muted small mb-0">{{ s.description }}</div>
+            </div>
+            <span class="ms-auto badge bg-secondary d-inline-flex align-items-center gap-1">
+              <i class="fas fa-lock"></i> غير متاح
+            </span>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+
+<!-- ============================================== -->
+<!-- نافذة تغيير كلمة المرور المنبثقة (Change Password Modal) -->
+<!-- ============================================== -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true" dir="rtl" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <!--
+      ملاحظة: المسار 'users_bp.me_password' مُعرَّف في user_routes.py ويستهدف تغيير كلمة المرور للمستخدم الحالي (Self-service)
+    -->
+    <form class="modal-content" method="post" action="{{ url_for('users_bp.me_password') }}">
+      <div class="modal-header">
+        <h5 class="modal-title" id="changePasswordModalLabel">تغيير كلمة المرور</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+      </div>
+      <div class="modal-body">
+        <!-- كلمة المرور الجديدة -->
+        <div class="mb-3 text-start">
+          <label for="new_password" class="form-label">كلمة مرور جديدة</label>
+          <input name="new_password" id="new_password" type="password" minlength="6" class="form-control" required autocomplete="new-password" placeholder="على الأقل 6 أحرف">
+          <div class="form-text">يجب أن تكون كلمة المرور الجديدة 6 أحرف أو أكثر.</div>
+        </div>
+
+        <!-- تأكيد كلمة المرور الجديدة -->
+        <div class="mb-3 text-start">
+          <label for="confirm_password" class="form-label">تأكيد كلمة المرور</label>
+          <input name="confirm_password" id="confirm_password" type="password" minlength="6" class="form-control" required autocomplete="new-password" placeholder="تأكيد كلمة المرور">
+          <div class="form-text text-danger" id="password_match_error" style="display:none;">كلمة المرور غير متطابقة!</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-warning" type="submit" id="submit_password_change" disabled>
+          <i class="fas fa-lock me-1"></i> تحديث كلمة المرور
+        </button>
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // 💡 إدارة النافذة المنبثقة للاستعلام (Pop-up Window Management)
+
+    // متغير لتخزين مرجع النافذة المنبثقة
+    let inquiryWindow = null;
+    const inquiryUrl = "{{ inquiry_url or '#' }}";
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. فتح النافذة المنبثقة للاستعلام
+        const inquiryLink = document.querySelector('.inquiry-popup-link');
+        if (inquiryLink) {
+            // نمنع الانتقال المباشر للمسار ونستبدله بفتح نافذة منبثقة
+            inquiryLink.href = 'javascript:void(0)';
+
+            inquiryLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                // لو الرابط غير متاح، لا تفتح نافذة
+                if (!inquiryUrl || inquiryUrl === '#') {
+                    return;
+                }
+                
+                // لو النافذة مفتوحة بالفعل، نركّز عليها
+                if (inquiryWindow && !inquiryWindow.closed) {
+                    // تأكد من الانتقال إلى شاشة الاستعلام حتى لو كانت النافذة تعرض صفحة مختلفة
+                    try { inquiryWindow.location.href = inquiryUrl; } catch (err) {}
+                    inquiryWindow.focus();
+                } else {
+                    // فتح نافذة جديدة
+                    const windowFeatures = "width=800,height=650,resizable=yes,scrollbars=yes";
+                    // اسم النافذة "InquiryPopup" يمنع فتح نوافذ متعددة في نفس الوقت
+                    inquiryWindow = window.open(inquiryUrl, "InquiryPopup", windowFeatures);
+                }
+            });
+        }
+        
+        // ----------------------------------------------------
+        // 💡 إدارة نافذة تغيير كلمة المرور (Modal Management)
+        // ----------------------------------------------------
+
+        const newPassInput = document.getElementById('new_password');
+        const confirmPassInput = document.getElementById('confirm_password');
+        const submitButton = document.getElementById('submit_password_change');
+        const errorDiv = document.getElementById('password_match_error');
+        const modal = document.getElementById('changePasswordModal');
+
+        // دالة التحقق من تطابق وسلامة كلمة المرور
+        const validatePasswords = () => {
+            const newPass = newPassInput.value;
+            const confirmPass = confirmPassInput.value;
+            
+            const isMatch = newPass === confirmPass && newPass.length >= 6;
+
+            if (newPass.length < 6) {
+                errorDiv.textContent = 'كلمة المرور يجب ألا تقل عن 6 أحرف.';
+                errorDiv.style.display = 'block';
+                submitButton.disabled = true;
+            } else if (newPass !== confirmPass) {
+                errorDiv.textContent = 'تأكيد كلمة المرور غير مطابق.';
+                errorDiv.style.display = 'block';
+                submitButton.disabled = true;
+            } else {
+                errorDiv.style.display = 'none';
+                submitButton.disabled = false;
+            }
+        };
+
+        // الاستماع لتغييرات المدخلات
+        if (newPassInput && confirmPassInput) {
+            newPassInput.addEventListener('input', validatePasswords);
+            confirmPassInput.addEventListener('input', validatePasswords);
+        }
+
+        // عند إغلاق المودال، إعادة تعيين الحقول ورسائل الأخطاء
+        if (modal) {
+            modal.addEventListener('hidden.bs.modal', () => {
+                if (newPassInput) newPassInput.value = '';
+                if (confirmPassInput) confirmPassInput.value = '';
+                if (errorDiv) errorDiv.style.display = 'none';
+                if (submitButton) submitButton.disabled = true;
+            });
+        }
+    });
+
+    // 2. إغلاق النافذة المنبثقة عند إغلاق النافذة الرئيسية (لضمان الارتباط)
+    window.addEventListener('beforeunload', () => {
+        if (inquiryWindow && !inquiryWindow.closed) {
+            inquiryWindow.close();
+        }
+    });
+
+    // 3. الاستماع لرسالة من النافذة المنبثقة عند إغلاقها يدويًا لتحديث المتغير
+    window.addEventListener('message', (event) => {
+        // التحقق من المصدر (Origin) لأسباب أمنية
+        if (event.origin !== window.location.origin) {
+            return;
+        }
+
+        if (event.data === 'inquiry_popup_closed') {
+            inquiryWindow = null;
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,974 @@
+{% extends "base.html" %}
+{% block title %}الاستعلام السريع{% endblock %}
+
+{% block content %}
+<div class="card shadow-lg mx-auto" style="max-width: 900px; margin-top: 2px;">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0"><i class="fas fa-search"></i> الاستعلام السريع</h5>
+    </div>
+    <div class="card-body p-3">
+        
+        <ul class="nav nav-tabs mb-2" id="inquiryTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="bakeries-tab" data-bs-toggle="tab" data-bs-target="#bakeries-pane" type="button" role="tab" aria-controls="bakeries-pane" aria-selected="true">
+                    مخابز
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="ration-tab" data-bs-toggle="tab" data-bs-target="#ration-pane" type="button" role="tab" aria-controls="ration-pane" aria-selected="false">
+                    تموين
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="substitute-tab" data-bs-toggle="tab" data-bs-target="#substitute-pane" type="button" role="tab" aria-controls="substitute-pane" aria-selected="false">
+                    استبدال
+                </button>
+            </li>
+        </ul>
+
+        <div class="input-group mb-2">
+            <input type="text" id="searchQuery" class="form-control" placeholder="ادخل الرقم، الاسم، أو المسلسل..." aria-label="Search Query">
+            <select id="searchBy" class="form-select" style="max-width: 180px;">
+                <option value="code">الرقم</option>
+                <option value="name">الاسم</option>
+                <option value="serial">المسلسل</option>
+                <option value="machine_code">رقم الماكينة</option>
+            </select>
+            <button class="btn btn-success" type="button" id="inquirySearchBtn">
+                <i class="fas fa-search"></i> بحث
+            </button>
+        </div>
+        <div id="inquiryMessage" class="alert d-none p-2 mb-2" role="alert"></div>
+        <!-- عناصر تنقل ظاهرة بين النتائج المتعددة -->
+        <div id="inquiryNavControls" class="d-flex align-items-center justify-content-center gap-2 mb-2 d-none fixed-floating">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="prevInquiryBtn">
+                <i class="fas fa-arrow-left"></i> السابق
+            </button>
+            <span id="inquiryCounter" class="small text-muted"></span>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="nextInquiryBtn">
+                التالي <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+
+        <div class="tab-content inquiry-content-area" id="inquiryTabsContent" style="overflow-y: hidden; height: auto;">
+            {% for key in ['bakeries', 'ration', 'substitute'] %}
+            <div class="tab-pane fade {% if key == 'bakeries' %}show active{% endif %}" id="{{ key }}-pane" role="tabpanel" aria-labelledby="{{ key }}-tab">
+                <div id="{{ key }}-data-view" class="row g-2">
+                    </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* CSS للتصميم الاحترافي والحديث */
+.card-body {
+    padding: 10px !important; 
+}
+.inquiry-content-area {
+    min-height: 400px;
+}
+.fixed-floating {
+    position: fixed;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1030;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.15);
+    padding: 6px 10px;
+}
+.data-box {
+    padding: 10px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    transition: box-shadow 0.3s ease;
+}
+.data-box:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.data-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 2px;
+    display: block;
+    white-space: nowrap; /* منع التفاف أسماء الحقول في البيانات الأساسية */
+}
+.data-value {
+    font-weight: 400;
+    margin-bottom: 5px;
+    word-wrap: break-word;
+}
+/* ألوان الشرط */
+.status-active { color: #198754; font-weight: bold; } /* أخضر لـ "نشط" */
+.status-inactive { color: #dc3545; font-weight: bold; } /* أحمر لـ "غير نشط" */
+
+/* تصميم الفلاش */
+@keyframes flash-animation {
+    0%, 100% { background-color: #ffc107; color: #343a40; } /* أصفر داكن */
+    50% { background-color: #f8f9fa; color: #dc3545; } /* أبيض وأحمر بارز */
+}
+.flash-field {
+    animation: flash-animation 1.5s infinite;
+    padding: 5px;
+    border-radius: 5px;
+    text-align: center;
+    font-weight: 900 !important;
+}
+
+/* تنسيق الجدول */
+.serials-table {
+    font-size: 0.85em; /* تصغير الخط قليلاً لاستيعاب الأعمدة */
+    width: 100%;
+}
+.serials-table th {
+    background-color: #0d6efd;
+    color: white;
+    white-space: nowrap; /* منع التفاف رؤوس الأعمدة */
+}
+</style>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+    // ***************************************************************
+    // تعريفات ثابتة
+    // ***************************************************************
+
+    const CATEGORIES = {
+        'bakeries': 'مخابز',
+        'ration': 'تموين',
+        'substitute': 'استبدال'
+    };
+    
+    // التأكد من أن url_for يستخدم _method='POST'
+    const API_URL = "{{ url_for('machine_reports_bp.api_inquiry_search', _method='POST') }}";
+    // رابط قاعدة شاشة المترددين — تم تعطيله مؤقتًا حتى إعادة البناء
+    const FREQUENT_URL_BASE = "";
+    // إبقاء المستخدم في شاشة الاستعلام: تعطيل روابط/أزرار التحويل
+    const ALLOW_EDIT_LINK = false;
+    // أسماء القائمين بالصيانة ثابتة حسب الطلب
+    const MAINTENANCE_NAMES = ['حمدي','اسلام','امين','مصطفى','وائل'];
+    // المستخدم الحالي (استخدام Jinja الآمن بدون getattr)
+    const CURRENT_USER = "{{ (current_user.username|default('')) }}";
+    // مسار إضافة سجل جديد إلى المترددين (البيانات الحديثة)
+    const ADD_RECENT_URL = "{{ url_for('trader_services_bp.frequent_add_recent', _method='POST') }}";
+    // قائمة الأعطال المتاحة (مطابقة لقائمة الخادم)
+    const FAULT_TYPES = ['ريدر','سوفت','طباعه','شحن','سوكت','شبكه','شاشه','بيت شريحه','F2','KEYS','POWER'];
+    
+
+    // أعمدة البيانات الأساسية بترتيبها المطلوب
+    const CUSTOMER_DETAIL_COLS = [
+        'الادارة', 'المكتب', 'رقم العميل', 'اسم العميل', 'اسم المسؤل',
+        'الرقم القومي', 'رقم المحمول', 'رقم هاتف', 'حالة العميل', 'ملاحظات'
+    ];
+    
+    // ***************************************************************
+    // الدوال المساعدة
+    // ***************************************************************
+
+    /**
+     * تطبق الألوان الشرطية على النصوص في الواجهة
+     * @param {string} text - النص المراد تلوينه
+     * @returns {string} - النص مع إضافة وسم <span class="status-class">
+     */
+    function applyStatusColor(text) {
+        if (!text) return '';
+        const lowerText = String(text).toLowerCase().trim();
+        
+        if (lowerText === 'نشط' || lowerText === 'نشطة' || lowerText === '1') {
+            return `<span class="status-active">${text}</span>`;
+        }
+        if (lowerText === 'غير نشط' || lowerText === 'غير نشطة' || lowerText === 'مشط' || lowerText === '0' || (lowerText !== '1' && /^\d+$/.test(lowerText))) {
+            return `<span class="status-inactive">${text}</span>`;
+        }
+        return text;
+    }
+
+    /**
+     * يتحقق إن كانت قيمة الحالة تُمثل "1/نشط"
+     * @param {any} val
+     * @returns {boolean}
+     */
+    function isStatusOne(val) {
+        const s = String(val ?? '').trim().toLowerCase();
+        if (!s) return false;
+        return (s === '1' || s === 'نشط' || s === 'نشطة' || s === 'active');
+    }
+    
+    /**
+     * يقوم بإرجاع قيمة حالة الماكينة كما هي من السجل
+     * @param {string} value - القيمة الأصلية
+     * @param {object} item - بيانات الصف الكامل
+     * @returns {string} - القيمة النصية كما هي
+     */
+    function formatMainSub(value, item) {
+        // إرجاع القيمة الأصلية من عمود "رئيسية/فرعية" كما هي (مطابق لاسم الحقل في السيرفر)
+        if (item && item['رئيسية/فرعية'] !== undefined) {
+            return String(item['رئيسية/فرعية']);
+        }
+        
+        // في حالة عدم وجود العمود، نرجع القيمة المباشرة
+        return String(value);
+    }
+
+
+    /**
+     * عرض رسالة للمستخدم
+     * @param {string} message - محتوى الرسالة
+     * @param {string} type - نوع الرسالة ('success' or 'danger')
+     */
+    function displayMessage(message, type) {
+        const msgElement = document.getElementById('inquiryMessage');
+        msgElement.textContent = message;
+        msgElement.className = `alert alert-${type} d-block p-2 mb-2`;
+    }
+
+    /**
+     * يضيف صفرًا بادئًا لرقم المحمول إذا كان لا يبدأ بصفر
+     * يُطبّق على الحقول: رقم المحمول / رقم هاتف / المحمول
+     * @param {string} val
+     * @returns {string}
+     */
+    function normalizeMobile(val) {
+        const s = String(val || '').trim();
+        if (!s || s === '-') return s;
+        // إذا كان أول حرف رقم وليس صفر، أضف صفر في البداية
+        if (/^[0-9]/.test(s) && s[0] !== '0') {
+            return '0' + s;
+        }
+        return s;
+    }
+
+    /**
+     * إعادة تعيين عرض البيانات وإخفاء الرسائل
+     * @param {string} categoryKey - مفتاح التبويب الحالي
+     */
+    function resetView(categoryKey) {
+        document.getElementById('inquiryMessage').className = 'alert d-none p-2 mb-2';
+        document.getElementById(`${categoryKey}-data-view`).innerHTML = '<p class="text-center text-muted mt-5">استخدم صندوق البحث لعرض بيانات العميل.</p>';
+    }
+
+    /**
+     * يعرض البيانات المطلوبة في شاشة الاستعلام
+     * @param {string} categoryKey - مفتاح التبويب الحالي ('bakeries', 'ration', 'substitute')
+     * @param {object} data - البيانات المسترجعة من الـ API (بالهيكل الجديد)
+     */
+    function renderData(categoryKey, data) {
+        const dataView = document.getElementById(`${categoryKey}-data-view`);
+        if (!dataView) return;
+        
+        let html = '';
+        const period = (data.visit_period || 'recent_program');
+        const isRation = (categoryKey === 'ration');
+        const clientStatusRaw = (data.customer_data || {})['حالة العميل'];
+        const clientIsOne = isStatusOne(clientStatusRaw);
+        const firstMachineStatusRaw = (((data.serial_list || [])[0] || {})['حالة الماكينة']);
+        const firstMachineIsOne = isStatusOne(firstMachineStatusRaw);
+        
+        // ---------------------------------------------------------------
+        // 1. مربع "البيانات الإضافية الديناميكية" (Flash/Totals) - col-3 * 4
+        // ---------------------------------------------------------------
+        let dynamicHTML = '';
+        const dynamicOrder = ['لدية ماكينة فرع', 'إجمالي الحوالات', 'اخر وضع للماكينة', 'اخر تاريخ سفر للماكينة', 'القائم بتسليم ماكينة الفرع'];
+        let dynamicFieldsCount = 0;
+        dynamicOrder.forEach(key => {
+            const value = data.dynamic_fields[key];
+            // اعتبر وجود أي قيمة غير فارغة كبيان (يشمل أي نص، وليس "نعم" فقط)
+            const hasValue = value !== undefined && String(value).trim() !== '' && String(value).trim() !== '-';
+            if (hasValue) {
+                const isFlash = (key === 'لدية ماكينة فرع');
+                dynamicHTML += `
+                    <div class="col-md-3 col-sm-6">
+                        <div class="data-box p-2 text-center h-100 ${isFlash ? 'flash-field' : ''}">
+                            <div class="data-label" style="font-size: 0.9em;">${key}</div>
+                            <div class="data-value" style="font-size: 1.1em; font-weight: bold;">${value}</div>
+                        </div>
+                    </div>
+                `;
+                dynamicFieldsCount++;
+            }
+        });
+        
+        // ---------------------------------------------------------------
+        // 2. مربع "البيانات الأساسية" (كل حقل بجوار عنوانه) - col-7
+        // ---------------------------------------------------------------
+        let customerHTML = '<div class="col-md-7"><div class="data-box h-100">';
+        customerHTML += '<h6 class="border-bottom pb-1 mb-2 text-primary">1- البيانات الأساسية</h6>';
+        customerHTML += '<div class="row g-1" style="font-size: 0.9em;">';
+        
+        CUSTOMER_DETAIL_COLS.forEach(key => {
+            const value = data.customer_data[key];
+            let displayValue = String(value || '-');
+            // تطبيع الهاتف/المحمول: أي مفتاح يحتوي على "هاتف" أو "محمول"
+            if (key && (key.includes('هاتف') || key.includes('محمول'))) {
+                displayValue = normalizeMobile(displayValue);
+            }
+            if (key === 'حالة العميل') {
+                // في التموين: اعرض حالة العميل فقط بناءً على قيمته دون ربطها بحالة الماكينة
+                if (isRation) {
+                    const label = clientIsOne ? 'نشط' : 'غير نشط';
+                    displayValue = applyStatusColor(label);
+                } else {
+                    displayValue = applyStatusColor(displayValue);
+                }
+            }
+            customerHTML += `
+                <div class="col-6">
+                    <div class="border-bottom pb-1 d-flex">
+                        <span class="data-label text-truncate me-1" style="font-weight: 600;">${key}:</span>
+                        <span class="data-value text-start" style="font-weight: 500; overflow: hidden;">${displayValue}</span>
+                    </div>
+                </div>
+            `;
+        });
+        customerHTML += '</div>'; // End row g-1
+        customerHTML += '</div></div>'; // End data-box and col-md-7
+
+        // ---------------------------------------------------------------
+        // 3. مربع "بيانات الزيارات" - col-5 (بجانب البيانات الأساسية)
+        // ---------------------------------------------------------------
+        let visitsHTML = '<div class="col-md-5"><div class="data-box">';
+        visitsHTML += '<h6 class="border-bottom pb-1 mb-2 text-primary">2- بيانات الزيارات</h6>';
+        visitsHTML += '<div class="row g-1">';
+        
+        // عرض حديث دائم: استخدم مربع واحد للبيانات الحديثة فقط
+        visitsHTML += '<div class="col-12">';
+        // عنوان البيانات الحديثة مع عداد إجمالي
+        visitsHTML += `<div class="d-flex justify-content-between align-items-center mb-1 border-bottom pb-1">
+            <div class="data-label text-danger">البيانات الحديثة (البرنامج)</div>
+            <span class="badge bg-danger">${data.visit_data.current_month.total}</span>
+        </div>`;
+        // عدّ منفصل حسب رقم العميل والمسلسل (بعد فلترة النوع)
+        const dbg = data.visit_debug || {};
+        const codeCount = (typeof dbg.code_count === 'number') ? dbg.code_count : null;
+        const serialCount = (typeof dbg.serial_count === 'number') ? dbg.serial_count : null;
+        if (codeCount !== null || serialCount !== null) {
+            visitsHTML += '<div class="d-flex justify-content-start align-items-center gap-3 mb-1">';
+            if (codeCount !== null) {
+                visitsHTML += `<div class="text-muted">حسب رقم العميل: <span class="badge bg-secondary">${codeCount}</span></div>`;
+            }
+            if (serialCount !== null) {
+                visitsHTML += `<div class="text-muted">حسب المسلسل: <span class="badge bg-secondary">${serialCount}</span></div>`;
+            }
+            visitsHTML += '</div>';
+        }
+        // عرض آخر وقت زيارة إذا كان متاحًا من الخادم
+        const lastVisitTime = (data.visit_data || {}).latest_datetime;
+        if (lastVisitTime) {
+            visitsHTML += `<div class="text-muted mb-1">آخر وقت زيارة: <span class="badge bg-secondary">${lastVisitTime}</span></div>`;
+        }
+        // تفاصيل المسلسلات: اعرض دائمًا عند توفر بيانات (حتى لو مسلسل واحد)
+        const detailsEntries = Object.entries(data.visit_data.current_month.details || {});
+        if (detailsEntries.length >= 1) {
+            visitsHTML += '<div class="data-label mb-1 text-primary">تفاصيل المسلسلات</div>';
+            visitsHTML += '<ul class="list-unstyled mb-0 ps-0 pe-2" style="font-size: 0.9em;">';
+            for (const [serial, count] of detailsEntries) {
+                // مربع/بادج صغير قبل المسلسل يحتوي عدد الزيارات
+                visitsHTML += `<li><span class="badge bg-secondary me-2" style="min-width:26px; display:inline-block;">${count}</span>${serial}</li>`;
+            }
+            visitsHTML += '</ul>';
+        }
+        visitsHTML += '</div>';
+        
+        visitsHTML += '</div>'; // End row g-1
+        visitsHTML += '</div></div>'; // End data-box and col-md-5
+
+        // 3.1 مربع تشخيصي صغير للزيارات (يظهر عند وجود بيانات تشخيص)
+        if (data.visit_debug) {
+            const dbg = data.visit_debug;
+            const dbgHTML = `
+                <div class="col-12">
+                    <div class="data-box mt-2">
+                        <h6 class="border-bottom pb-1 mb-2 text-secondary">تشخيص الزيارات (للمطور)</h6>
+                        <div style="font-size: 0.85em;">
+                            <div>أعمدة المصدر: <code>${(dbg.source_cols||[]).join(', ')}</code></div>
+                            <div>الأعمدة القياسية: <code>${(dbg.std_cols||[]).join(', ')}</code></div>
+                            <div>صفوف المصدر: <span class="badge bg-info">${dbg.source_rows ?? '-'}</span></div>
+                            <div>الاسم/الرقم بعد التطبيع: <code>${dbg.name_norm || '-'}</code> / <code>${dbg.code_norm || '-'}</code></div>
+                            <div>عدد المسلسلات المطابقة: <span class="badge bg-info">${dbg.serials_norm_count ?? 0}</span></div>
+                            <div>صفوف مطابقة قبل الحساب: <span class="badge bg-warning">${dbg.matched_rows ?? 0}</span></div>
+                            <div>نتيجة الشهر: <span class="badge bg-danger">${dbg.month_total ?? 0}</span> | نتيجة السنة: <span class="badge bg-secondary">${dbg.year_total ?? 0}</span></div>
+                            ${dbg.reason ? `<div class="text-danger">سبب عدم الحساب: ${dbg.reason}</div>` : ''}
+                            <!-- تشخيص الماكينات الأساسية (All Data / trader_primary) -->
+                            <div class="mt-2 border-top pt-2">
+                                <div class="fw-bold text-primary">تشخيص الماكينات الأساسية (All Data)</div>
+                                <div>أعمدة المصدر: <code>${(((dbg.primary||{}).source_cols)||[]).join(', ')}</code></div>
+                                <div>أعمدة المطابقة: <code>code=${(((dbg.primary||{}).match_cols||{}).code)||'-'}</code> | <code>name=${(((dbg.primary||{}).match_cols||{}).name)||'-'}</code></div>
+                                <div>عدد الصفوف المطابقة: <span class="badge bg-info">${(((dbg.primary||{}).match_rows)||0)}</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            // إلحاق البلوك التشخيصي بعد قسم الزيارات
+            html += dbgHTML;
+        }
+
+        // ---------------------------------------------------------------
+        // 4. مربع "المسلسلات" (عرض الصفحة بالكامل) - col-12
+        // ---------------------------------------------------------------
+        let serialsHTML = '<div class="col-12 mt-3"><div class="data-box">';
+        serialsHTML += '<h6 class="border-bottom pb-1 mb-2 text-primary">3- المسلسلات وتفاصيل الماكينات</h6>';
+        
+        if (data.serial_list.length > 0) {
+            // تحديد الأعمدة المطلوبة فقط بالترتيب الدقيق
+            const requiredColumns = [
+                'رقم الماكينة',
+                'مسلسل',
+                'رئيسية/فرعية', // مطابقة اسم العمود القادم من السيرفر
+                'حالة الماكينة',
+                'شريحة1',
+                'شريحة2'
+            ];
+            
+            // الحصول على المفاتيح المتاحة في البيانات
+            const availableKeys = Object.keys(data.serial_list[0]);
+            
+            // إزالة الحقن البديل؛ يجب استخدام العمود "رئيسية/فرعية" كما يرسله السيرفر
+            
+            let orderedKeys = [];
+            
+            // إضافة الأعمدة بالترتيب المحدد إذا كانت موجودة في البيانات
+            if (availableKeys.includes('رقم الماكينة')) orderedKeys.push('رقم الماكينة');
+            if (availableKeys.includes('مسلسل')) orderedKeys.push('مسلسل');
+            
+            // إضافة عمود رئيسية/فرعية فقط في تبويب المخابز
+            if (categoryKey === 'bakeries' && availableKeys.includes('رئيسية/فرعية')) {
+                orderedKeys.push('رئيسية/فرعية');
+            }
+            
+            if (availableKeys.includes('حالة الماكينة')) orderedKeys.push('حالة الماكينة');
+            if (availableKeys.includes('شريحة1')) orderedKeys.push('شريحة1');
+            if (availableKeys.includes('شريحة2')) orderedKeys.push('شريحة2');
+            
+            // بناء رأس الجدول بالترتيب المطلوب + عمود الإجراءات بدلاً من حقول الإدخال
+            let tableHeader = '<thead><tr>';
+            orderedKeys.forEach(key => {
+                tableHeader += `<th>${key}</th>`;
+            });
+            // استبدال حقول الإدخال بعمود واحد للإجراءات
+            tableHeader += '<th>إجراءات</th>';
+            tableHeader += '</tr></thead>';
+
+            // بناء جسم الجدول بالترتيب المطلوب
+            let tableBody = '<tbody>';
+            data.serial_list.forEach((item, idx) => {
+                tableBody += `<tr data-row-index="${idx}">`;
+                orderedKeys.forEach(key => {
+                    let value = item[key] || '-';
+                    let displayValue = String(value).trim();
+
+                    // عرض قيمة 'رئيسية/فرعية' كما هي
+                    if (key === 'رئيسية/فرعية') {
+                        displayValue = formatMainSub(displayValue, item);
+                    }
+
+                    // تطبيق تلوين الحالة
+                    if (key === 'حالة الماكينة') {
+                         if (isRation) {
+                             const rowIsOne = isStatusOne(value);
+                             const combined = clientIsOne && rowIsOne;
+                             displayValue = applyStatusColor(combined ? 'نشط' : 'غير نشطة');
+                         } else {
+                             displayValue = applyStatusColor(displayValue);
+                         }
+                    }
+
+                    // إبقاء المستخدم في شاشة الاستعلام: لا تحويل إلى شاشة المترددين عبر رابط المسلسل
+                    tableBody += `<td>${displayValue}</td>`;
+                });
+                // عمود الإجراءات: إضافة متردد جديد من شاشة الاستعلام (مودال داخلية)
+                const actionBtn = `<button type="button" class="btn btn-outline-success btn-sm" onclick="openAddFrequentModal(${idx})"><i class="fas fa-plus"></i> اضافة متردد جديد</button>`;
+                tableBody += `<td class="text-center">${actionBtn}</td>`;
+                tableBody += '</tr>';
+            });
+            tableBody += '</tbody>';
+            
+            serialsHTML += `
+                <div style="overflow-x: auto;">
+                    <table class="table table-sm table-striped serials-table mb-0">
+                        ${tableHeader}
+                        ${tableBody}
+                    </table>
+                </div>
+            `;
+        } else {
+            serialsHTML += '<p class="text-center text-muted">لا توجد تفاصيل ماكينات متاحة.</p>';
+        }
+        serialsHTML += '</div></div>'; // End data-box and col-12
+        
+        
+        // 3.2 مربع "ماكينات الفرع والحوالات"
+        let branchSectionHTML = '';
+        try {
+            const bs = data.branch_section || {};
+            const mode = data.primary_match_mode || 'none';
+            const labels = ['ماكينه فرع', 'الحواله', 'الحاله', 'تاريخ السفر للصيانه', 'القائم بتسليم ماكينة الفرع'];
+            let rows = '';
+            labels.forEach(lbl => {
+                const val = (bs[lbl] !== undefined && String(bs[lbl]).trim() !== '') ? String(bs[lbl]) : '-';
+                rows += `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="border-bottom pb-1 d-flex">
+                            <span class="data-label text-truncate me-1" style="font-weight:600;">${lbl}:</span>
+                            <span class="data-value text-start" style="font-weight:500; overflow:hidden;">${val}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            let note = '';
+            if (mode !== 'intersection') {
+                note = '<div class="alert alert-warning p-2 mb-2">لم يتم تطابق كامل (بالرقم والاسم)، قد تظهر بيانات جزئية إن وجدت.</div>';
+            }
+            branchSectionHTML = `
+                <div class="col-12 mb-2">
+                    <div class="data-box h-100">
+                        <h6 class="border-bottom pb-1 mb-2 text-primary">3- ماكينات الفرع والحوالات</h6>
+                        ${note}
+                        <div class="row g-2" style="font-size:0.9em;">${rows}</div>
+                    </div>
+                </div>
+            `;
+        } catch (e) { /* تجاهل أي أخطاء بسيطة في العرض */ }
+
+        // تجميع كل الأقسام: وضع البيانات الديناميكية في شريط علوي مخصص أعلى البيانات الأساسية والزيارات
+        let dynamicSectionHTML = '';
+        if (dynamicFieldsCount > 0) {
+            dynamicSectionHTML = `
+                <div class="col-12 mb-2">
+                    <div class="data-box h-100">
+                        <h6 class="border-bottom pb-1 mb-2 text-primary">0- بيانات من All Data (الماكينات الأساسية)</h6>
+                        <div class="row g-2">${dynamicHTML}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+// تجميع الأقسام بدون صناديق إضافية
+        html = '<div class="row g-2">' + customerHTML + visitsHTML + '</div>' + branchSectionHTML + serialsHTML;
+        
+        // تحديث محتوى الـ div
+        dataView.innerHTML = html;
+        // خزّن آخر نتيجة بحث لاستخدامها عند الحفظ
+        window.__lastInquiryResult = data;
+    }
+
+
+    // ***************************************************************
+    // التعامل مع الأحداث (Events)
+    // ***************************************************************
+    // تأكد من تشغيل التهيئة حتى لو كانت DOMContentLoaded قد حدثت
+    function ready(fn){
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            setTimeout(fn, 0);
+        } else {
+            document.addEventListener('DOMContentLoaded', fn);
+        }
+    }
+
+ready(() => {
+        const searchBtn = document.getElementById('inquirySearchBtn');
+        const searchQueryInput = document.getElementById('searchQuery');
+        const searchBySelect = document.getElementById('searchBy');
+        const tabs = document.getElementById('inquiryTabs');
+        const SAVE_URL = "{{ url_for('machine_reports_bp.api_save_service_tickets', _method='POST') }}";
+        const navControls = document.getElementById('inquiryNavControls');
+        const prevBtn = document.getElementById('prevInquiryBtn');
+        const nextBtn = document.getElementById('nextInquiryBtn');
+        const counterEl = document.getElementById('inquiryCounter');
+
+        // ---------------------------------------------------------------
+        // تنقل بالسهم يمين/يسار بين السجلات عند تعدد النتائج
+        // ---------------------------------------------------------------
+        function updateNavControls() {
+            const items = window.__inquiryItems || [];
+            const idx = window.__inquiryActiveIndex || 0;
+            if (!navControls) return;
+            if (items.length > 1) {
+                navControls.classList.remove('d-none');
+                if (counterEl) counterEl.textContent = `السجل ${idx + 1} من ${items.length}`;
+                if (prevBtn) prevBtn.disabled = idx <= 0;
+                if (nextBtn) nextBtn.disabled = idx >= items.length - 1;
+            } else {
+                navControls.classList.add('d-none');
+            }
+        }
+
+        function bindKeyNavigation() {
+            if (window.__inquiryKeyNavBound) return;
+            window.__inquiryKeyNavBound = true;
+            document.addEventListener('keydown', (e) => {
+                // نحترم اتجاهات الأسهم فقط عند وجود أكثر من سجل
+                const items = window.__inquiryItems || [];
+                if (!items || items.length <= 1) return;
+                if (e.key === 'ArrowRight' || e.key === 'Right') {
+                    e.preventDefault();
+                    navigateItem(1);
+                } else if (e.key === 'ArrowLeft' || e.key === 'Left') {
+                    e.preventDefault();
+                    navigateItem(-1);
+                }
+            });
+            // ربط أزرار التنقل الظاهرة
+            prevBtn?.addEventListener('click', () => navigateItem(-1));
+            nextBtn?.addEventListener('click', () => navigateItem(1));
+        }
+
+        function navigateItem(delta) {
+            const items = window.__inquiryItems || [];
+            if (!items || items.length === 0) return;
+            const category = getActiveCategory();
+            let idx = (window.__inquiryActiveIndex || 0) + delta;
+            if (idx < 0) idx = 0;
+            if (idx >= items.length) idx = items.length - 1;
+            window.__inquiryActiveIndex = idx;
+
+            // دمج نتيجة العنصر المحدد داخل آخر نتيجة بحث للحفاظ على الأقسام الأخرى كما هي
+            const base = window.__lastInquiryResult || {};
+            const merged = Object.assign({}, base);
+            const item = items[idx] || {};
+            if (item.common_data) merged.customer_data = item.common_data;
+            if (Array.isArray(item.machine_details)) merged.serial_list = item.machine_details;
+
+            renderData(category, merged);
+            displayMessage(`عرض السجل ${idx + 1} من ${items.length}`, 'info');
+            updateNavControls();
+        }
+
+        /**
+         * تحدد فئة التبويب النشط حاليًا
+         * @returns {string} مفتاح الفئة النشطة
+         */
+        function getActiveCategory() {
+            const activeTab = tabs.querySelector('.nav-link.active');
+            if (!activeTab) return 'bakeries'; // الافتراضي
+            return activeTab.id.replace('-tab', '');
+        }
+
+        /**
+         * تنفذ عملية البحث وتحدث الواجهة
+         */
+        const executeSearch = async () => {
+            const category = getActiveCategory();
+            const query = searchQueryInput.value.trim();
+            const searchType = searchBySelect.value;
+
+            if (!query) {
+                displayMessage('يرجى إدخال قيمة للبحث.', 'warning');
+                return;
+            }
+            
+            // تفريغ حالة البحث السابقة لمنع عرض سجلات قديمة إذا فشل البحث الجديد
+            window.__lastInquiryResult = null;
+            window.__inquiryItems = [];
+            window.__inquiryActiveIndex = 0;
+            if (navControls) {
+                navControls.classList.add('d-none');
+            }
+            if (counterEl) { counterEl.textContent = ''; }
+
+            // إعادة تعيين العرض والرسائل
+            resetView(category);
+            searchBtn.disabled = true;
+            searchBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جار البحث...';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        category: category,
+                        query: query,
+                        search_type: searchType,
+                        visit_period: 'recent_program'
+                    })
+                });
+
+                // إذا لم يكن الرد ناجحًا (مثل 401/403)، نعرض رسالة واضحة
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('Inquiry API HTTP Error:', response.status, text);
+                    const msg = (response.status === 401 || response.status === 403)
+                        ? 'ليس لديك صلاحية الوصول للاستعلام. يرجى تسجيل الدخول أو التأكد من الصلاحيات.'
+                        : 'فشل الاتصال بالخادم. حاول لاحقًا.';
+                    displayMessage(msg, 'danger');
+                    resetView(category);
+                    return;
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayMessage(result.message || 'تم العثور على البيانات بنجاح.', 'success');
+                    renderData(category, result);
+                    // حفظ العناصر المتعددة إن وجدت وتفعيل التنقل بالسهمين
+                    window.__lastInquiryResult = result;
+                    window.__inquiryItems = result.items || [];
+                    window.__inquiryActiveIndex = 0;
+                    bindKeyNavigation();
+                    updateNavControls();
+                    if (window.__inquiryItems.length > 1) {
+                        displayMessage(`تم العثور على ${window.__inquiryItems.length} سجلات. استخدم الأسهم يمين/يسار أو الأزرار السابق/التالي للتنقل.`, 'info');
+                    }
+                } else {
+                    displayMessage(result.message || 'فشل البحث.', 'danger');
+                    resetView(category); 
+                }
+            } catch (error) {
+                console.error('Inquiry API Error:', error);
+                displayMessage('حدث خطأ غير متوقع أثناء الاتصال بالخادم.', 'danger');
+                resetView(category);
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = '<i class="fas fa-search"></i> بحث';
+            }
+        };
+
+        // ربط زر البحث بالدالة
+        searchBtn.addEventListener('click', executeSearch);
+        // تفعيل البحث عند الضغط على Enter
+        searchQueryInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                executeSearch();
+            }
+        });
+        // تم تعطيل البحث التلقائي أثناء الكتابة بناءً على الطلب —
+        // لن يبدأ البحث إلا بالضغط على Enter أو زر "بحث".
+
+        // إعادة تعيين العرض عند تغيير التبويب
+        tabs.addEventListener('shown.bs.tab', (event) => {
+            const newCategory = event.target.id.replace('-tab', '');
+            resetView(newCategory);
+        });
+
+        // عرض رسالة ترحيب أولية
+        resetView('bakeries');
+
+        // إدارة وسم الأعطال: إضافة/إزالة وعرض منسق أعلى القائمة
+        document.addEventListener('change', (e) => {
+            if (e.target && e.target.classList.contains('fault-select')) {
+                const sel = e.target;
+                const val = (sel.value || '').trim();
+                if (!val) return;
+                const scope = sel.closest('.modal') || sel.closest('td') || sel.parentElement;
+                const tags = scope?.querySelector('.fault-tags');
+                if (!tags) return;
+                const exists = [...tags.querySelectorAll('.fault-tag')].some(t => t.dataset.val === val);
+                if (!exists) {
+                    const tag = document.createElement('span');
+                    tag.className = 'badge bg-info me-1 fault-tag';
+                    tag.dataset.val = val;
+                    tag.innerHTML = `${val} <button type="button" class="btn-close btn-close-white btn-sm ms-1 remove-fault" aria-label="Remove"></button>`;
+                    tags.appendChild(tag);
+                }
+                sel.value = '';
+                [...sel.options].forEach(opt => {
+                    if ((opt.value || '').trim() === val) {
+                        opt.hidden = true;
+                    }
+                });
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (e.target && e.target.classList.contains('remove-fault')) {
+                const tag = e.target.closest('.fault-tag');
+                if (tag) {
+                    const val = (tag.dataset.val || '').trim();
+                    const scope = tag.closest('.modal') || tag.closest('td') || tag.parentElement;
+                    const sel = scope?.querySelector('.fault-select');
+                    tag.remove();
+                    if (sel) {
+                        [...sel.options].forEach(opt => {
+                            if ((opt.value || '').trim() === val) {
+                                opt.hidden = false;
+                            }
+                        });
+                    }
+                }
+            }
+        });
+
+        // عند فتح القائمة، أخفِ كل الأعطال المختارة مسبقًا في هذا الصف
+        document.addEventListener('focusin', (e) => {
+            if (e.target && e.target.classList.contains('fault-select')) {
+                const sel = e.target;
+                const scope = sel.closest('.modal') || sel.closest('td') || sel.parentElement;
+                const selectedValues = new Set([...scope.querySelectorAll('.fault-tags .fault-tag')].map(t => (t.dataset.val || '').trim()));
+                [...sel.options].forEach(opt => {
+                    const v = (opt.value || '').trim();
+                    opt.hidden = selectedValues.has(v);
+                });
+            }
+        });
+
+        // تم إلغاء زر "حفظ التذاكر" وبالتالي أزيل الحدث المرتبط به
+
+        // فتح مودال إضافة متردد جديد بناءً على صف في جدول السيريالات
+        window.openAddFrequentModal = function(rowIdx){
+            try {
+                // تجهيز عناصر المودال وإنشاؤه إن لم يكن موجودًا
+                let modalEl = document.getElementById('addFrequentModal');
+                if (!modalEl) {
+                    const modalHtml = `
+                        <div class="modal fade" id="addFrequentModal" tabindex="-1" aria-hidden="true">
+                          <div class="modal-dialog modal-md modal-dialog-centered">
+                            <form class="modal-content" id="addFrequentForm">
+                              <div class="modal-header">
+                                <h5 class="modal-title"><i class="fas fa-user-plus"></i> اضافة متردد جديد</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                              </div>
+                              <div class="modal-body">
+                                <div class="row g-2">
+                                  <input type="hidden" id="addSerial" required>
+                                  <input type="hidden" id="addMachineCode">
+
+                                  <div class="col-12">
+                                    <h6 class="border-bottom pb-1 mb-2 text-primary">تفاصيل التذكرة</h6>
+                                  </div>
+                                  <div class="col-md-4">
+                                    <label class="form-label">التاريخ</label>
+                                    <input type="date" class="form-control" id="addDate" value="${new Date().toISOString().slice(0,10)}" disabled>
+                                  </div>
+                                  <div class="col-md-4">
+                                    <label class="form-label">القائم بالصيانة</label>
+                                    <select class="form-select" id="addMaintenance"></select>
+                                  </div>
+                                  <div class="col-md-4">
+                                    <label class="form-label">رقم الإذن</label>
+                                    <input type="text" class="form-control" id="addOrder" placeholder="أرقام فقط">
+                                  </div>
+
+                                  <div class="col-12">
+                                    <div class="border rounded p-2 bg-light">
+                                      <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <label class="form-label mb-0">أنواع الأعطال</label>
+                                        <small class="text-muted">اختر أعطال متعددة إذا لزم</small>
+                                      </div>
+                                      <div class="fault-tags mb-1" id="addFaultTags"></div>
+                                      <select class="form-select form-select-sm fault-select" id="addFaultSelect"></select>
+                                    </div>
+                                  </div>
+
+                                  <div class="col-md-4">
+                                    <label class="form-label">الحوالة المطلوبة</label>
+                                    <input type="text" class="form-control" id="addTransfer">
+                                  </div>
+                                  <div class="col-12">
+                                    <label class="form-label">الملاحظات</label>
+                                    <textarea class="form-control" id="addNotes" rows="2"></textarea>
+                                  </div>
+                                </div>
+                              </div>
+                              <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
+                              </div>
+                            </form>
+                          </div>
+                        </div>`;
+                    document.body.insertAdjacentHTML('beforeend', modalHtml);
+                    modalEl = document.getElementById('addFrequentModal');
+                }
+
+                // تعبئة القوائم (القائم بالصيانة + الأعطال)
+                const maintSel = modalEl.querySelector('#addMaintenance');
+                maintSel.innerHTML = '<option value="">—</option>' + MAINTENANCE_NAMES.map(n=>`<option value="${n}">${n}</option>`).join('');
+                if (CURRENT_USER && MAINTENANCE_NAMES.includes(CURRENT_USER)) maintSel.value = CURRENT_USER;
+
+                const faultSel = modalEl.querySelector('#addFaultSelect');
+                faultSel.innerHTML = '<option value="">— اختر عطل —</option>' + FAULT_TYPES.map(ft=>`<option value="${ft}">${ft}</option>`).join('');
+                // إعادة ضبط حالة الإخفاء والاختيار للقائمة
+                [...faultSel.options].forEach(opt=>{ opt.hidden = false; });
+                faultSel.value = '';
+
+                // تفريغ كل الحقول قبل تعبئتها من الصف المحدد
+                modalEl.querySelector('#addSerial').value = '';
+                modalEl.querySelector('#addMachineCode').value = '';
+                modalEl.querySelector('#addOrder').value = '';
+                modalEl.querySelector('#addTransfer').value = '';
+                modalEl.querySelector('#addNotes').value = '';
+                // التاريخ لليوم الحالي
+                const today = new Date().toISOString().slice(0,10);
+                const dateInput = modalEl.querySelector('#addDate');
+                if (dateInput) { dateInput.value = today; }
+                // خدمات للمستخدم الحالي
+                const servicesInput = modalEl.querySelector('#addServices');
+                if (servicesInput) { servicesInput.value = CURRENT_USER || ''; }
+                // تفريغ الوسوم المختارة للأعطال
+                const tagsEl = modalEl.querySelector('#addFaultTags');
+                if (tagsEl) { tagsEl.innerHTML = ''; }
+
+                // استخلاص القيم من صف الجدول المحدد
+                const table = document.querySelector('.serials-table');
+                const ths = [...table.querySelectorAll('thead th')].map(th=>th.textContent.trim());
+                const tr = table.querySelectorAll('tbody tr')[rowIdx];
+                const tds = [...tr.querySelectorAll('td')];
+                const getCell = (label)=>{ const i = ths.indexOf(label); return i>=0 && i<tds.length ? tds[i].textContent.trim() : ''; };
+                const serialVal = getCell('مسلسل');
+                const machineCodeVal = getCell('رقم الماكينة');
+
+                modalEl.querySelector('#addSerial').value = serialVal || '';
+                modalEl.querySelector('#addMachineCode').value = machineCodeVal || '';
+
+                // ربط حدث الإرسال
+                const formEl = modalEl.querySelector('#addFrequentForm');
+                formEl.onsubmit = async (ev) => {
+                    ev.preventDefault();
+                    const categoryKey = getActiveCategory();
+                    const sectionName = CATEGORIES[categoryKey] || '';
+                    const cust = (window.__lastInquiryResult||{}).customer_data || {};
+                    const payload = {
+                        machine_serial: modalEl.querySelector('#addSerial').value.trim(),
+                        machine_code: modalEl.querySelector('#addMachineCode').value.trim(),
+                        maintenance: modalEl.querySelector('#addMaintenance').value.trim(),
+                        services: CURRENT_USER,
+                        order_number: modalEl.querySelector('#addOrder').value.trim(),
+                        required_transfer: modalEl.querySelector('#addTransfer').value.trim(),
+                        notes: modalEl.querySelector('#addNotes').value.trim(),
+                        fault_types: [...modalEl.querySelectorAll('#addFrequentModal .fault-tags .fault-tag')].map(i=>i.dataset.val).filter(Boolean),
+                        // حقول أساسية مطلوبة ليتم جلبها من شاشة الاستعلام
+                        management: String(cust['الادارة']||'').trim(),
+                        office: String(cust['المكتب']||'').trim(),
+                        client_name: String(cust['اسم العميل']||'').trim(),
+                        client_number: String(cust['رقم العميل']||'').trim(),
+                        section: sectionName
+                    };
+                    if (!payload.machine_serial) { displayMessage('المسلسل مطلوب.', 'warning'); return; }
+                    if (payload.fault_types.length === 0) { displayMessage('يجب اختيار عطل واحد على الأقل.', 'danger'); return; }
+                    if (!payload.order_number || !/^\d+$/.test(payload.order_number)) { displayMessage('رقم الإذن مطلوب ويكون أرقام فقط.', 'danger'); return; }
+                    try {
+                        const resp = await fetch(ADD_RECENT_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+                        const result = await resp.json();
+                        if (result.success) {
+                            displayMessage(result.message || 'تمت إضافة السجل بنجاح.', 'success');
+                            const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                            bsModal.hide();
+                        } else {
+                            displayMessage(result.message || 'فشل الإضافة.', 'danger');
+                        }
+                    } catch (err) {
+                        console.error('Add frequent error', err);
+                        displayMessage('حدث خطأ أثناء الإضافة.', 'danger');
+                    }
+                };
+
+                const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                bsModal.show();
+            } catch (e) {
+                console.warn('openAddFrequentModal error', e);
+                displayMessage('تعذر فتح نافذة الإضافة.', 'danger');
+            }
+        };
+    });
+</script>
+{% endblock %}

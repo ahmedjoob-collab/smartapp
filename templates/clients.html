@@ -1,0 +1,65 @@
+
+{% extends "layout.html" %}
+{% block title %}إدارة العملاء{% endblock %}
+{% block content %}
+
+<div class="container">
+    <h2 class="text-center mb-4">قسم إدارة العملاء</h2>
+
+    <!-- زر التصدير -->
+    <div class="text-center mb-4">
+        <a href="{{ url_for('clients_bp.clients') }}" class="btn btn-success">
+            📤 تصدير العملاء إلى Excel
+        </a>
+    </div>
+
+    <!-- نموذج إضافة عميل -->
+    <form method="POST" class="row g-3 mb-5 border p-4 bg-white shadow-sm rounded">
+        <div class="col-md-4">
+            <label class="form-label">الاسم</label>
+            <input type="text" name="name" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">رقم الهاتف</label>
+            <input type="text" name="phone" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">الخدمة</label>
+            <input type="text" name="service" class="form-control" required>
+        </div>
+        <div class="col-12 text-center">
+            <button type="submit" class="btn btn-primary">➕ إضافة عميل</button>
+        </div>
+    </form>
+
+    <!-- جدول عرض العملاء -->
+    {% if clients %}
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped bg-white shadow-sm">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>الاسم</th>
+                    <th>رقم الهاتف</th>
+                    <th>الخدمة</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for client in clients %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ client.name }}</td>
+                    <td>{{ client.phone }}</td>
+                    <td>{{ client.service }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted text-center">لا يوجد عملاء حالياً.</p>
+    {% endif %}
+
+</div>
+
+{% endblock %}

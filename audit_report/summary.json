@@ -1,0 +1,26 @@
+{
+  "num_routes": 61,
+  "num_urlfor_refs": 79,
+  "missing_urlfor_endpoints": [
+    "clients_bp.export_clients",
+    "counter",
+    "machine_reports_bp.export_machine_screen",
+    "machine_reports_bp.machine_screen",
+    "static",
+    "trader_services.export_uploaded_file",
+    "trader_services.view_data",
+    "trader_services_bp.export_basic_customers) }}",
+    "trader_services_bp.export_frequent_visitors) }}",
+    "user_management_bp.add_user",
+    "user_management_bp.delete_user",
+    "user_management_bp.edit_user",
+    "user_management_bp.manage_users",
+    "user_management_bp.update_password",
+    "user_management_bp.update_role"
+  ],
+  "num_missing_urlfor": 15,
+  "num_templates": 34,
+  "num_templates_referenced": 20,
+  "num_missing_templates": 4,
+  "num_unused_templates": 18
+}

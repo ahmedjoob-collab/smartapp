@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إضافة مستخدم</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .form-container { max-width: 600px; margin: 40px auto; padding: 30px; background-color: #fff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; margin-bottom: 25px; }
+    </style>
+</head>
+<body>
+<div class="form-container">
+    <h2>➕ إضافة مستخدم جديد</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        <div class="mb-3">
+            <label for="username" class="form-label">اسم المستخدم</label>
+            <input type="text" class="form-control" id="username" name="username" required>
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">كلمة المرور</label>
+            <input type="password" class="form-control" id="password" name="password" required>
+        </div>
+        <div class="mb-3">
+            <label for="role" class="form-label">نوع المستخدم</label>
+            <select class="form-select" id="role" name="role" required>
+                <option value="admin">مدير (Admin)</option>
+                <option value="support">دعم فني</option>
+                <option value="viewer">مشاهدة فقط</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">صلاحيات الأقسام</label>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="sections" value="tech" id="tech">
+                <label class="form-check-label" for="tech">قسم الدعم الفني</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="sections" value="trader" id="trader">
+                <label class="form-check-label" for="trader">قسم خدمات التجار</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="sections" value="settings" id="settings">
+                <label class="form-check-label" for="settings">الإعدادات العامة</label>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-success w-100">💾 إضافة المستخدم</button>
+        <a href="{{ url_for('user_management.manage_users') }}" class="btn btn-secondary w-100 mt-2">↩️ رجوع</a>
+    </form>
+</div>

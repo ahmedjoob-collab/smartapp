@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>عرض بيانات Excel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        th, td {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container mt-5">
+    <h2 class="text-center mb-4">📊 عرض بيانات ملف Excel</h2>
+
+    <!-- ✅ زرين التصدير -->
+    <div class="text-center mb-4">
+        <a href="{{ url_for('clients.export_uploaded_file') }}" class="btn btn-success me-2">
+            📤 تصدير الملف كما هو
+        </a>
+        <a href="{{ url_for('clients.export_uploaded_file_nonempty') }}" class="btn btn-warning">
+            📤 تصدير الأعمدة التي تحتوي على بيانات فقط
+        </a>
+    </div>
+
+    <!-- ✅ حقل البحث -->
+    <div class="mb-3 text-center">
+        
+    <div class="input-group w-75 mx-auto mb-3">
+        <input type="text" id="searchInput" class="form-control" placeholder="🔍 ابحث داخل البيانات..." onkeyup="debouncedFilterTable()">
+        <select id="columnSelector" class="form-select" style="max-width: 200px;">
+            <option value="all">🔍 البحث في الكل</option>
+            {% for head in headers %}
+                <option value="{{ loop.index0 }}">{{ head }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    </div>
+
+    <!-- ✅ جدول البيانات -->
+    <div class="table-responsive bg-white p-3 rounded shadow-sm">
+        <table class="table table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    {% for head in headers %}
+                        <th>{{ head }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    <tr>
+                        {% for cell in row %}
+                            <td>{{ cell }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ✅ سكربت بحث باستخدام Debounce لتقليل التهنيج -->
+<script>
+let debounceTimer;
+function debouncedFilterTable() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        let input = document.getElementById("searchInput");
+        let filter = input.value.toLowerCase();
+        let table = document.querySelector("table");
+        let rows = table.getElementsByTagName("tr");
+
+        for (let i = 1; i < rows.length; i++) {
+            let cells = rows[i].getElementsByTagName("td");
+            let match = false;
+
+            for (let j = 0; j < cells.length; j++) {
+                if (cells[j].innerText.toLowerCase().includes(filter)) {
+                    match = true;
+                    break;
+                }
+            }
+
+            rows[i].style.display = match ? "" : "none";
+        }
+    }, 500); // يتم تنفيذ الفلترة بعد 0.5 ثانية من آخر حرف
+}
+
+function debouncedFilterTable() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        let input = document.getElementById("searchInput").value.toLowerCase();
+        let columnIndex = document.getElementById("columnSelector").value;
+        let table = document.querySelector("table");
+        let rows = table.querySelectorAll("tbody tr");
+
+        rows.forEach(row => {
+            let cells = row.querySelectorAll("td");
+            let showRow = false;
+
+            if (columnIndex === "all") {
+                showRow = Array.from(cells).some(cell => cell.textContent.toLowerCase().includes(input));
+            } else {
+                let cell = cells[parseInt(columnIndex)];
+                if (cell && cell.textContent.toLowerCase().includes(input)) {
+                    showRow = true;
+                }
+            }
+
+            row.style.display = showRow ? "" : "none";
+        });
+
+        hideEmptyColumns();
+    }, 300);
+}
+
+function hideEmptyColumns() {
+    let table = document.querySelector("table");
+    let rows = table.querySelectorAll("tbody tr");
+    let headers = table.querySelectorAll("thead th");
+
+    if (rows.length === 0) return;
+
+    let colCount = headers.length;
+
+    for (let col = 0; col < colCount; col++) {
+        let empty = true;
+        for (let row of rows) {
+            if (row.style.display === "none") continue;
+            let cell = row.children[col];
+            if (cell && cell.textContent.trim() !== "") {
+                empty = false;
+                break;
+            }
+        }
+        for (let row of table.rows) {
+            if (row.cells[col]) {
+                row.cells[col].style.display = empty ? "none" : "";
+            }
+        }
+    }
+}
+
+// عند تحميل الصفحة: أخفِ الأعمدة الفارغة أولاً
+window.onload = function() {
+    hideEmptyColumns();
+};
+</script>

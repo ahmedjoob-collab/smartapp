@@ -1,0 +1,6 @@
+ref_by,template,source,suggestion
+/mnt/data/project/smart_branch_admin_system_cleaned/app.py,errors/403.html,render_template,403.html
+/mnt/data/project/smart_branch_admin_system_cleaned/app.py,errors/500.html,render_template,
+/mnt/data/project/smart_branch_admin_system_cleaned/venv/Lib/site-packages/flask/helpers.py,index.html,render_template,machine_reports/index.html
+/mnt/data/project/smart_branch_admin_system_cleaned/venv/Lib/site-packages/flask/helpers.py,index.html,render_template,machine_reports/index.html
+/mnt/data/project/smart_branch_admin_system_cleaned/venv/Lib/site-packages/flask/helpers.py,not_found.html,render_template,

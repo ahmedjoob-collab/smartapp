@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}خدمات التجار{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body d-flex flex-column">
+        <h5 class="card-title">المترددون</h5>
+        <p class="text-muted">بيانات حديثة مع الاستيراد والبحث والتصدير.</p>
+        <div class="mt-auto d-flex gap-2">
+          {% if current_user.role=='admin' %}
+          <a class="btn btn-outline-primary" href="{{ url_for('trader_services_bp.frequent_import_view') }}"><i class="fas fa-upload"></i> استيراد</a>
+          {% endif %}
+          {% if current_user.role=='admin' or current_user.can_trader_frequent %}
+          <a class="btn btn-primary" href="{{ url_for('trader_services_bp.frequent_visitors', tab='recent') }}"><i class="fas fa-list"></i> عرض/بحث</a>
+          {% else %}
+          <a class="btn btn-secondary disabled" href="#"><i class="fas fa-ban"></i> غير مسموح</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body d-flex flex-column">
+        <h5 class="card-title">الماكينات الأساسية للعملاء وماكينات الفرع</h5>
+        <p class="text-muted">استيراد ملف واحد ثم البحث والعرض والتصدير.</p>
+        <div class="mt-auto d-flex gap-2">
+          {% if current_user.role=='admin' %}
+          <a class="btn btn-outline-primary" href="{{ url_for('trader_services_bp.primary_import_view') }}"><i class="fas fa-upload"></i> استيراد</a>
+          {% endif %}
+        {% if current_user.role=='admin' or current_user.can_trader_primary %}
+          <a class="btn btn-primary" href="{{ url_for('trader_services_bp.primary_machines') }}"><i class="fas fa-list"></i> عرض/بحث</a>
+          {% else %}
+          <a class="btn btn-secondary disabled" href="#"><i class="fas fa-ban"></i> غير مسموح</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

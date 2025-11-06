@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}استيراد المترددين{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h5 mb-0">استيراد المترددين (ملفين اختياريًا)</h1>
+  <a class="btn btn-light" href="{{ url_for('trader_services_bp.frequent_visitors', tab='recent') }}"><i class="fas fa-list"></i> الذهاب للعرض/البحث</a>
+</div>
+
+<form class="card p-3 mb-3" method="post" enctype="multipart/form-data" action="{{ url_for('trader_services_bp.frequent_import_post') }}">
+  <div class="row g-3">
+    <div class="col-md-4">
+      <label class="form-label">اسم الفترة/الملف</label>
+  <input type="text" name="label" class="form-control" placeholder="مثال: تقرير-2025-01" required>
+      <div class="form-text">يستخدم للاختيار من القائمة في شاشة العرض.</div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">ملف Excel 1</label>
+      <input type="file" name="file1" class="form-control" accept=".xlsx,.xls">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">ملف Excel 2</label>
+      <input type="file" name="file2" class="form-control" accept=".xlsx,.xls">
+    </div>
+    <div class="col-12 d-flex align-items-end justify-content-end">
+      <button class="btn btn-primary"><i class="fas fa-upload"></i> استيراد</button>
+    </div>
+  </div>
+</form>
+
+  <div class="card">
+  <div class="card-body">
+    <form id="mappingForm" class="row g-3" method="post" action="{{ url_for('trader_services_bp.frequent_save_mapping') }}">
+      <div class="col-lg-6">
+        <label class="form-label">ترتيب الأعمدة (CSV)</label>
+        <input id="orderCsvInput" class="form-control" type="text" name="order_csv" value="{{ order_csv }}" placeholder="مثال: النوع,الادارة,مكتب,اسم العميل,رقم العميل,مسلسل,التاريخ,خدمات,صيانه,الاذن,...">
+        <div class="form-text">اتركه فارغًا إن لم تحتاجه.</div>
+      </div>
+      <div class="col-lg-6">
+        <label class="form-label">إعادة التسمية (سطر لكل تحويل)</label>
+        <textarea class="form-control" name="rename_lines" rows="3" placeholder="القديم=>الجديد">{{ rename_lines }}</textarea>
+        <div class="form-text">مثال: رقم الإذن=>الاذن</div>
+      </div>
+      <div class="col-12">
+        <div class="alert alert-secondary">سيتم حفظ المابينج لاستخدامه في العرض والتصدير.</div>
+      </div>
+      <div class="card-footer text-end">
+        <button class="btn btn-outline-secondary" type="submit"><i class="fas fa-save"></i> حفظ المابينج</button>
+      </div>
+    </form>
+  </div>
+  
+  </div>
+
+{% endblock %}
+
+{% block scripts %}{% endblock %}

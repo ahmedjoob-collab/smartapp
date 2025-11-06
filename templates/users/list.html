@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% block title %}إدارة المستخدمين{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h5 mb-0">إدارة المستخدمين</h1>
+  <div class="d-flex gap-2">
+    <!-- زر يفتح مودال الإضافة -->
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+      <i class="fas fa-user-plus"></i> إضافة مستخدم
+    </button>
+    <a class="btn btn-light" href="{{ url_for('main_bp.dashboard') }}"><i class="fas fa-home"></i> الصفحة الرئيسية</a>
+  </div>
+</div>
+
+<div class="data-table-wrap">
+  <div class="table-responsive">
+    <table class="table table-sm table-striped table-hover table-bordered data-table align-middle text-center">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>اسم المستخدم</th>
+          <th>الدور</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in items %}
+        {% set is_admin = (u.username == 'admin') %}
+        <tr class="{{ 'table-secondary' if is_admin }}">
+          <td>{{ u.id }}</td>
+          <td>
+            {{ u.username }}
+            {% if is_admin %}
+              <span class="badge bg-secondary ms-1"><i class="fas fa-lock"></i> admin</span>
+            {% endif %}
+            {% if u.suspended %}
+              <span class="badge bg-warning text-dark ms-1"><i class="fas fa-pause"></i> موقوف مؤقتًا</span>
+            {% endif %}
+          </td>
+          <td>{{ 'مدير' if u.role=='admin' else 'مستخدم' }}</td>
+          <td class="text-nowrap">
+            <!-- تغيير كلمة المرور عبر مودال -->
+            <button type="button" class="btn btn-sm btn-warning"
+                    data-bs-toggle="modal" data-bs-target="#passModal{{u.id}}">
+              <i class="fas fa-key"></i> كلمة المرور
+            </button>
+
+            <!-- تعديل (مودال) معطّل للأدمن -->
+            <button type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    {% if is_admin %}disabled title="لا يمكن تعديل حساب الأدمن"
+                    {% else %}data-bs-toggle="modal" data-bs-target="#editModal{{u.id}}"
+                    {% endif %}>
+              <i class="fas fa-pen"></i> تعديل
+            </button>
+
+            <!-- إيقاف/تشغيل (غير متاح للأدمن) -->
+            <form class="d-inline" method="post" action="{{ url_for('users_bp.toggle_suspend', user_id=u.id) }}">
+              <button class="btn btn-sm btn-outline-{{ 'success' if u.suspended else 'warning' }}"
+                      {% if is_admin %}disabled title="لا يمكن إيقاف الأدمن"{% endif %}>
+                {% if u.suspended %}<i class="fas fa-play"></i> تشغيل{% else %}<i class="fas fa-pause"></i> إيقاف{% endif %}
+              </button>
+            </form>
+
+            <!-- حذف مع تأكيد (معطّل للأدمن) -->
+            <form class="d-inline" method="post" action="{{ url_for('users_bp.delete_user', user_id=u.id) }}"
+                  onsubmit="return confirm('تأكيد حذف المستخدم؟');">
+              <button class="btn btn-sm btn-outline-danger" {{ 'disabled' if is_admin }}>
+                <i class="fas fa-trash"></i> حذف
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ========== Add User Modal (global) خارج الجدول ========== -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true" dir="rtl" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content" method="post" action="{{ url_for('users_bp.add_user') }}">
+      <div class="modal-header">
+        <h5 class="modal-title">مستخدم جديد</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3 text-start">
+          <label class="form-label">اسم المستخدم</label>
+          <input name="username" class="form-control" required autocomplete="off">
+        </div>
+        <div class="mb-3 text-start">
+          <label class="form-label">كلمة المرور</label>
+          <input name="password" type="password" minlength="6" class="form-control" required autocomplete="new-password">
+        </div>
+        <div class="mb-3 text-start">
+          <label class="form-label">الدور</label>
+          <select name="role" class="form-select">
+            <option value="user" selected>user</option>
+            <option value="admin">admin</option>
+          </select>
+        </div>
+        
+        <!-- حقول الصلاحيات القديمة والجديدة -->
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <div class="form-check text-start">
+              <input class="form-check-input" type="checkbox" id="addCanTrader" name="can_trader_services">
+              <label class="form-check-label" for="addCanTrader">خدمات التجار</label>
+            </div>
+            <!-- شاشات خدمات التجار الفرعية -->
+            <div class="ms-4 mt-2 p-2 border rounded bg-light">
+              <div class="form-text mb-1">اختر الشاشات داخل خدمات التجار:</div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="addCanTraderFrequent" name="can_trader_frequent">
+                <label class="form-check-label" for="addCanTraderFrequent">المترددين</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="addCanTraderPrimary" name="can_trader_primary">
+                <label class="form-check-label" for="addCanTraderPrimary">الماكينات الأساسية/ماكينات الفرع</label>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="form-check text-start">
+              <input class="form-check-input" type="checkbox" id="addCanSupport" name="can_support">
+              <label class="form-check-label" for="addCanSupport">الدعم الفني</label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="col-sm-4">
+            <div class="form-check text-start">
+              <input class="form-check-input" type="checkbox" id="addCanSettings" name="can_settings">
+              <label class="form-check-label" for="addCanSettings">الإعدادات العامة</label>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <div class="form-check text-start">
+              <input class="form-check-input" type="checkbox" id="addCanReports" name="can_general_reports">
+              <label class="form-check-label" for="addCanReports">التقارير العامة</label>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <div class="form-check text-start">
+              <input class="form-check-input" type="checkbox" id="addCanInquiry" name="can_inquiry">
+              <label class="form-check-label" for="addCanInquiry">الاستعلام</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" type="submit">إضافة</button>
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========== Modals per user (كلها تحت الجدول) ========== -->
+{% for u in items %}
+  {% set is_admin = (u.username == 'admin') %}
+
+  <!-- Edit Modal (غير متاح للأدمن) -->
+  {% if not is_admin %}
+  <div class="modal fade" id="editModal{{u.id}}" tabindex="-1" aria-hidden="true" dir="rtl" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" method="post" action="{{ url_for('users_bp.edit_user', user_id=u.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title">تعديل مستخدم</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3 text-start">
+            <label class="form-label">اسم المستخدم</label>
+            <input name="username" class="form-control" value="{{ u.username }}" required autocomplete="off">
+          </div>
+          <div class="mb-3 text-start">
+            <label class="form-label">الدور</label>
+            <select name="role" class="form-select">
+              <option value="user" {{ 'selected' if u.role=='user' }}>user</option>
+              <option value="admin" {{ 'selected' if u.role=='admin' }}>admin</option>
+            </select>
+          </div>
+          
+          <!-- حقول الصلاحيات القديمة والجديدة -->
+          <div class="row mb-2">
+            <div class="col-sm-6">
+              <div class="form-check text-start">
+                <input class="form-check-input" type="checkbox" id="editCanTrader{{u.id}}" name="can_trader_services"
+                        {% if u.can_trader_services %}checked{% endif %}>
+                <label class="form-check-label" for="editCanTrader{{u.id}}">خدمات التجار</label>
+              </div>
+              <!-- شاشات خدمات التجار الفرعية -->
+              <div class="ms-4 mt-2 p-2 border rounded bg-light">
+                <div class="form-text mb-1">اختر الشاشات داخل خدمات التجار:</div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="editCanTraderFrequent{{u.id}}" name="can_trader_frequent"
+                          {% if u.can_trader_frequent %}checked{% endif %}>
+                  <label class="form-check-label" for="editCanTraderFrequent{{u.id}}">المترددين</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="editCanTraderPrimary{{u.id}}" name="can_trader_primary"
+                          {% if u.can_trader_primary %}checked{% endif %}>
+                  <label class="form-check-label" for="editCanTraderPrimary{{u.id}}">الماكينات الأساسية/ماكينات الفرع</label>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="form-check text-start">
+                <input class="form-check-input" type="checkbox" id="editCanSupport{{u.id}}" name="can_support"
+                        {% if u.can_support %}checked{% endif %}>
+                <label class="form-check-label" for="editCanSupport{{u.id}}">الدعم الفني</label>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-sm-4">
+              <div class="form-check text-start">
+                <input class="form-check-input" type="checkbox" id="editCanSettings{{u.id}}" name="can_settings"
+                        {% if u.can_settings %}checked{% endif %}>
+                <label class="form-check-label" for="editCanSettings{{u.id}}">الإعدادات العامة</label>
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="form-check text-start">
+                <input class="form-check-input" type="checkbox" id="editCanReports{{u.id}}" name="can_general_reports"
+                        {% if u.can_general_reports %}checked{% endif %}>
+                <label class="form-check-label" for="editCanReports{{u.id}}">التقارير العامة</label>
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="form-check text-start">
+                <input class="form-check-input" type="checkbox" id="editCanInquiry{{u.id}}" name="can_inquiry"
+                        {% if u.can_inquiry %}checked{% endif %}>
+                <label class="form-check-label" for="editCanInquiry{{u.id}}">الاستعلام</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" type="submit">حفظ</button>
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Password Modal (للأدمن) -->
+  <div class="modal fade" id="passModal{{u.id}}" tabindex="-1" aria-hidden="true" dir="rtl" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" method="post" action="{{ url_for('users_bp.update_password', user_id=u.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title">تغيير كلمة المرور — {{ u.username }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3 text-start">
+            <label class="form-label">كلمة مرور جديدة</label>
+            <input name="new_password" type="password" minlength="6" class="form-control" required autocomplete="new-password">
+            <div class="form-text">على الأقل 6 أحرف</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-warning" type="submit">تحديث</button>
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // ضمان نقل أي مودال عند الفتح إلى أسفل <body> لتفادي مشاكل z-index/overflow
+  document.querySelectorAll('.modal').forEach(function (el) {
+    el.addEventListener('show.bs.modal', function () {
+      if (el.parentElement !== document.body) {
+        document.body.appendChild(el);
+      }
+    });
+  });
+</script>
+{% endblock %}

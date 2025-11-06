@@ -1,0 +1,62 @@
+endpoint,qualified,bp,file,route_args
+index,index,,/mnt/data/project/smart_branch_admin_system_cleaned/app.py,'/'
+login,login,auth_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/auth_routes.py,"'/login', methods=['GET', 'POST']"
+auth_bp.login,auth_bp.login,auth_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/auth_routes.py,"'/login', methods=['GET', 'POST']"
+logout,logout,auth_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/auth_routes.py,'/logout'
+auth_bp.logout,auth_bp.logout,auth_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/auth_routes.py,'/logout'
+clients,clients,clients,/mnt/data/project/smart_branch_admin_system_cleaned/routes/clients.py,"'/clients', methods=['GET', 'POST']"
+clients.clients,clients.clients,clients,/mnt/data/project/smart_branch_admin_system_cleaned/routes/clients.py,"'/clients', methods=['GET', 'POST']"
+delete_client,delete_client,clients,/mnt/data/project/smart_branch_admin_system_cleaned/routes/clients.py,'/clients/delete/<int:id>'
+clients.delete_client,clients.delete_client,clients,/mnt/data/project/smart_branch_admin_system_cleaned/routes/clients.py,'/clients/delete/<int:id>'
+upload_excel,upload_excel,clients,/mnt/data/project/smart_branch_admin_system_cleaned/routes/clients.py,"'/clients/upload', methods=['GET', 'POST']"
+clients.upload_excel,clients.upload_excel,clients,/mnt/data/project/smart_branch_admin_system_cleaned/routes/clients.py,"'/clients/upload', methods=['GET', 'POST']"
+show_uploaded,show_uploaded,clients,/mnt/data/project/smart_branch_admin_system_cleaned/routes/clients.py,'/clients/uploaded'
+clients.show_uploaded,clients.show_uploaded,clients,/mnt/data/project/smart_branch_admin_system_cleaned/routes/clients.py,'/clients/uploaded'
+export_uploaded_file,export_uploaded_file,clients,/mnt/data/project/smart_branch_admin_system_cleaned/routes/clients.py,'/clients/export_uploaded'
+clients.export_uploaded_file,clients.export_uploaded_file,clients,/mnt/data/project/smart_branch_admin_system_cleaned/routes/clients.py,'/clients/export_uploaded'
+export_uploaded_file_nonempty,export_uploaded_file_nonempty,clients,/mnt/data/project/smart_branch_admin_system_cleaned/routes/clients.py,'/clients/export_uploaded_nonempty'
+clients.export_uploaded_file_nonempty,clients.export_uploaded_file_nonempty,clients,/mnt/data/project/smart_branch_admin_system_cleaned/routes/clients.py,'/clients/export_uploaded_nonempty'
+clients_bp.clients,clients_bp.clients,clients_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/client_routes.py,'/clients'
+add_client,add_client,clients_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/client_routes.py,"'/clients/add', methods=['POST']"
+clients_bp.add_client,clients_bp.add_client,clients_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/client_routes.py,"'/clients/add', methods=['POST']"
+clients_bp.delete_client,clients_bp.delete_client,clients_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/client_routes.py,"'/clients/delete/<int:client_id>', methods=['POST']"
+machine_reports,machine_reports,machine_reports_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/machine_reports.py,'/machine_reports'
+machine_reports_bp.machine_reports,machine_reports_bp.machine_reports,machine_reports_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/machine_reports.py,'/machine_reports'
+upload_report,upload_report,machine_reports_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/machine_reports.py,"'/machine_reports/upload', methods=['POST']"
+machine_reports_bp.upload_report,machine_reports_bp.upload_report,machine_reports_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/machine_reports.py,"'/machine_reports/upload', methods=['POST']"
+export_reports,export_reports,machine_reports_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/machine_reports.py,'/machine_reports/export'
+machine_reports_bp.export_reports,machine_reports_bp.export_reports,machine_reports_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/machine_reports.py,'/machine_reports/export'
+dashboard,dashboard,main_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/main_routes.py,'/dashboard'
+main_bp.dashboard,main_bp.dashboard,main_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/main_routes.py,'/dashboard'
+frequent_visitors,frequent_visitors,trader_services_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/trader_services.py,'/frequent_visitors'
+trader_services_bp.frequent_visitors,trader_services_bp.frequent_visitors,trader_services_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/trader_services.py,'/frequent_visitors'
+basic_customers,basic_customers,trader_services_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/trader_services.py,'/basic_customers'
+trader_services_bp.basic_customers,trader_services_bp.basic_customers,trader_services_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/trader_services.py,'/basic_customers'
+import_frequent_visitors,import_frequent_visitors,trader_services_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/trader_services.py,"'/frequent_visitors/import', methods=['POST']"
+trader_services_bp.import_frequent_visitors,trader_services_bp.import_frequent_visitors,trader_services_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/trader_services.py,"'/frequent_visitors/import', methods=['POST']"
+import_basic_customers,import_basic_customers,trader_services_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/trader_services.py,"'/basic_customers/import', methods=['POST']"
+trader_services_bp.import_basic_customers,trader_services_bp.import_basic_customers,trader_services_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/trader_services.py,"'/basic_customers/import', methods=['POST']"
+export_frequent_visitors,export_frequent_visitors,trader_services_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/trader_services.py,'/frequent_visitors/export'
+trader_services_bp.export_frequent_visitors,trader_services_bp.export_frequent_visitors,trader_services_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/trader_services.py,'/frequent_visitors/export'
+export_basic_customers,export_basic_customers,trader_services_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/trader_services.py,'/basic_customers/export'
+trader_services_bp.export_basic_customers,trader_services_bp.export_basic_customers,trader_services_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/trader_services.py,'/basic_customers/export'
+add_user,add_user,users_add_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_management.py,"'/users/add', methods=['GET', 'POST']"
+users_add_bp.add_user,users_add_bp.add_user,users_add_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_management.py,"'/users/add', methods=['GET', 'POST']"
+edit_user,edit_user,users_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_management.py,"'/users/edit/<int:user_id>', methods=['GET', 'POST']"
+users_bp.edit_user,users_bp.edit_user,users_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_management.py,"'/users/edit/<int:user_id>', methods=['GET', 'POST']"
+delete_user,delete_user,users_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_management.py,'/users/delete/<int:user_id>'
+users_bp.delete_user,users_bp.delete_user,users_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_management.py,'/users/delete/<int:user_id>'
+manage_users,manage_users,user_management,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_management.py,'/manage_users'
+user_management.manage_users,user_management.manage_users,user_management,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_management.py,'/manage_users'
+user_management.add_user,user_management.add_user,user_management,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_management.py,"'/add_user', methods=['POST']"
+update_role,update_role,user_management,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_management.py,"'/update_role/<int:user_id>', methods=['POST']"
+user_management.update_role,user_management.update_role,user_management,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_management.py,"'/update_role/<int:user_id>', methods=['POST']"
+user_management.delete_user,user_management.delete_user,user_management,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_management.py,"'/delete_user/<int:user_id>', methods=['POST']"
+update_password,update_password,user_management,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_management.py,"'/update_password/<int:user_id>', methods=['POST']"
+user_management.update_password,user_management.update_password,user_management,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_management.py,"'/update_password/<int:user_id>', methods=['POST']"
+list_users,list_users,user_management,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_management.py,'/users'
+user_management.list_users,user_management.list_users,user_management,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_management.py,'/users'
+users,users,users_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_routes.py,'/users'
+users_bp.users,users_bp.users,users_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_routes.py,'/users'
+users_bp.add_user,users_bp.add_user,users_bp,/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_routes.py,"'/users/add', methods=['POST']"
+download_file,download_file,,/mnt/data/project/smart_branch_admin_system_cleaned/venv/Lib/site-packages/flask/helpers.py,"""/uploads/<path:name>"""

@@ -1,0 +1,239 @@
+3) تشغيله على الشبكة الداخلية (تذكير سريع)
+
+شغّل السيرفر على كل الواجهات:
+
+flask run --host=0.0.0.0 --port=5000
+
+
+أو استخدام waitress للإتاحة المستقرة:
+
+python -m waitress --host=0.0.0.0 --port=5000 app:app
+
+
+افتح من أي جهاز/موبايل على نفس الشبكة:
+
+http://<IP_السيرفر>:5000
+
+
+طريقة نقل البرنامج لجهاز اخر
+
+تمام — دي “روشتة” نقل المشروع لسيرفر ويندوز جديد وتشغيله على الشبكة الداخلية بدون مشاكل، خطوة بخطوة وبشكل عملي جدًا.
+
+1) تجهيز بايثون والبيئة
+
+نزّل وثبّت Python 3.11+ على السيرفر الجديد، وخلال التثبيت فعل:
+
+“Add Python to PATH”
+
+“Install for all users” (اختياري لكن مفضل)
+
+افتح CMD كمسؤول ونفّذ:
+
+python --version
+pip --version
+python -m pip install --upgrade pip wheel setuptools
+
+2) نسخ المشروع
+
+انسخ مجلد مشروعك بالكامل من السيرفر القديم إلى الجديد، مثلاً:
+
+D:\TS\fixed_project_final
+
+
+(تأكد من وجود كل شيء: app.py, مجلد routes, templates, static (وفيه images/sounds), models.py, أي ملفات config، إلخ.)
+
+لو عايز تنقل نفس البيانات القديمة (SQLite)، انسخ ملف قاعدة البيانات (عادة اسمه data.db أو حسب إعدادك) من السيرفر القديم إلى نفس المسار على الجديد.
+لو عايز تبدأ بقاعدة جديدة فاضية، لا تنسخ ملف الـ DB وسيقوم الكود بإنشائها تلقائيًا مع مستخدم admin.
+
+3) إنشاء Virtualenv وتثبيت المتطلبات
+
+داخل مجلد المشروع على السيرفر الجديد:
+
+cd /d D:\TS\fixed_project_final
+python -m venv .venv
+.\.venv\Scripts\activate
+python -m pip install --upgrade pip
+
+
+لو عندك requirements.txt فاستعمله:
+
+pip install -r requirements.txt
+
+
+لو مافيش requirements.txt، ثبت الحزم الأساسية يدويًا (المشروع بتاعك بيستخدم الحزم دي على الأقل):
+
+pip install flask flask-login flask-sqlalchemy werkzeug
+pip install pandas openpyxl xlsxwriter
+pip install waitress
+
+
+ملاحظات:
+
+pandas يعتمد على numpy — pip هينزل wheel جاهز على ويندوز.
+
+xlsxwriter أو openpyxl واحدة منهم تكفي للتصدير، بس تثبيت الاتنين يديك مرونة.
+
+لو بتستخدم .env فثبّت: pip install python-dotenv (اختياري).
+
+4) الإعدادات (Secret, DB, Paths)
+
+المشروع بتاعك بالفعل بيضبط الإعدادات الافتراضية:
+
+SECRET_KEY من البيئة أو قيمة افتراضية.
+
+قاعدة البيانات: SQLite في نفس مجلد المشروع (مثل data.db).
+
+تقدر تضيف ملف .env (اختياري) في جذر المشروع لضبط قيم:
+
+SECRET_KEY=ضع_قيمة_طويلة_عشوائية
+DATABASE_URL=sqlite:///D:/TS/fixed_project_final/data.db
+FLASK_ENV=production
+
+
+لو نقلت DB من القديم، حط الملف في D:\TS\fixed_project_final\data.db (أو غيّر المسار في DATABASE_URL).
+
+5) إنشاء الجداول وتوليد admin (أوتوماتيك)
+
+الكود في app.py اللي أرسلته لك بيعمل:
+
+db.create_all() لتوليد الجداول.
+
+ترقيع أعمدة support_case لو ناقصة.
+
+إنشاء مستخدم admin/admin تلقائيًا لو مش موجود.
+
+يعني غالبًا مش محتاج تعمل حاجة إضافية. فقط شغّل السيرفر مرة أولى وهو هيظبط القاعدة.
+
+6) اختبار التشغيل محليًا
+
+من نفس الـ CMD داخل الـ venv:
+
+خيار التطوير (مؤقتًا):
+
+set FLASK_APP=app.py
+flask run --host=0.0.0.0 --port=5000
+
+
+افتح من جهاز السيرفر:
+
+http://127.0.0.1:5000
+
+
+جرّب تسجيل الدخول (admin/admin). لو شغال تمام، كمل للخطوة التالية.
+
+7) تشغيل مستقر على الشبكة (Waitress)
+
+الأفضل على ويندوز:
+
+أ) بسرعة:
+
+python -m waitress --host=0.0.0.0 --port=5000 app:app
+
+
+ب) سكربت تشغيل:
+أنشئ serve.py بجانب app.py:
+
+from app import app
+from waitress import serve
+
+if __name__ == "__main__":
+    serve(app, host="0.0.0.0", port=5000, threads=8)
+
+
+ثم:
+
+python serve.py
+
+8) فتح البورت في جدار الحماية
+
+افتح Windows Defender Firewall → Advanced settings → Inbound Rules
+
+New Rule → Port → TCP → 5000 → Allow → Private → اسم مناسب.
+
+9) معرفة IP والوصول من أجهزة الشبكة
+
+على السيرفر:
+
+ipconfig
+
+
+خُد عنوان IPv4 (مثل 192.168.1.50).
+من أي جهاز/موبايل على نفس الشبكة:
+
+http://192.168.1.50:5000
+
+10) (اختياري) تشغيل كـ خدمة Windows (Auto-start)
+
+أسهل طريقة باستخدام NSSM:
+
+نزّل NSSM.
+
+أنشئ خدمة جديدة:
+
+Path: D:\TS\fixed_project_final\.venv\Scripts\python.exe
+
+Arguments: D:\TS\fixed_project_final\serve.py
+
+Startup dir: D:\TS\fixed_project_final
+
+اضبط الخدمة Automatic وشغلها.
+
+افتح البورت 5000 كما سبق.
+
+11) لو هتنقل لقاعدة بيانات سيرفر (PostgreSQL) لاحقًا
+
+ثبّت PostgreSQL (على جهاز مناسب).
+
+غيّر DATABASE_URL، مثل:
+postgresql+psycopg2://user:pass@192.168.1.60:5432/sbdb
+
+ثبّت السائق: pip install psycopg2-binary
+
+شغّل مرة لتوليد الجداول، وانقل البيانات لو لزم.
+
+12) الملفات الثابتة (Static) المهمة
+
+تأكد من وجود:
+
+static/images/logo.png, static/images/icon.ico, وأي شعارات أخرى.
+
+static/sounds/reminder.wav
+
+PWA (لو فعّلتها): static/manifest.webmanifest, static/service-worker.js, static/offline.html, وأيقونات app-icon-192.png و app-icon-512.png.
+
+13) مشاكل شائعة وحلها
+
+ModuleNotFoundError: pandas / flask-login...
+→ فعّل الـ venv ونفّذ pip install ... أو pip install -r requirements.txt.
+
+sqlite3.OperationalError: no such table: user
+→ شغّل السيرفر مرة (الكود يعمل create_all() وبيولد admin). لو لسه، تأكد إنك مش بتشغّل من مجلد مختلف.
+
+BuildError/TemplateNotFound
+→ تأكد من المسارات: templates و static بجوار app.py، وتسجيل كل Blueprint في app.py.
+
+لا أستطيع الوصول من الموبايل
+→ تأكد من IP صحيح، وجدار الحماية فاتح 5000، وكل الأجهزة على نفس الشبكة.
+
+PWA لا تظهر “Install”
+→ لازم HTTPS أو localhost. داخل LAN على HTTP هيشتغل كموقع عادي بدون SW/PWA.
+
+ملخص سريع للأوامر الضرورية على السيرفر الجديد
+cd /d D:\TS\fixed_project_final
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install --upgrade pip
+pip install flask flask-login flask-sqlalchemy werkzeug pandas openpyxl xlsxwriter waitress
+python -m waitress --host=0.0.0.0 --port=5000 app:app
+
+تأكيد على جميع المطلوب تثبيته في cmd
+
+cd /d D:\TS\fixed_project_final
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install --upgrade pip
+pip install -r requirements.txt
+python -m waitress --host=0.0.0.0 --port=5000 app:app
+http://localhost:5000/trader/frequent?tab=recent
+
+python serve.py

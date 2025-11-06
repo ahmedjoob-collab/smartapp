@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}{{ category_label }} - عرض/بحث{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h5 mb-0">{{ category_label }}</h1>
+  <div class="d-flex gap-2">
+    <a class="btn btn-light" href="{{ url_for('machine_reports_bp.index') }}"><i class="fas fa-arrow-right"></i> التقارير العامة</a>
+    {% if is_admin %}
+    <a class="btn btn-outline-primary" href="{{ url_for('machine_reports_bp.import_view', category=category) }}"><i class="fas fa-file-import"></i> استيراد</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if is_admin and mapping_enabled %}
+<div class="card mb-3">
+  <div class="card-body">
+    <form id="mappingForm" class="row g-3" method="post" action="{{ url_for('machine_reports_bp.save_mapping', category=category) }}">
+      <div class="col-lg-6">
+        <label class="form-label">ترتيب الأعمدة (CSV)</label>
+        <input id="orderCsvInput" class="form-control" type="text" name="order_csv" value="{{ order_csv }}" placeholder="مثال: رقم,اسم,العنوان,...">
+      </div>
+      <div class="col-lg-6">
+        <label class="form-label">إعادة التسمية (سطر لكل تحويل)</label>
+        <textarea class="form-control" name="rename_lines" rows="3" placeholder="القديم=>الجديد">{{ rename_lines }}</textarea>
+      </div>
+      <div class="col-12">
+        <button class="btn btn-outline-secondary"><i class="fas fa-save"></i> حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<form class="row gy-2 gx-2 align-items-end mb-3" method="get" action="{{ url_for('machine_reports_bp.category_view', category=category) }}">
+  <div class="col-sm-6 col-lg-4">
+    <label class="form-label">بحث شامل</label>
+    <input type="text" name="q" value="{{ q or '' }}" class="form-control" placeholder="اكتب جزء من أي قيمة">
+  </div>
+
+  <div class="col-sm-6 col-lg-3">
+    <label class="form-label">البحث في عمود</label>
+    <select id="searchInSelect" name="search_in" class="form-select">
+      <option value="all" {{ 'selected' if search_in=='all' }}>الكل (كل الأعمدة)</option>
+      {% for c in search_cols %}
+        <option value="{{ c }}" {{ 'selected' if search_in==c }}>{{ c }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-sm-6 col-lg-2">
+    <label class="form-label">عدد السجلات</label>
+    <select name="page_size" class="form-select">
+      {% for n in [10,25,50,100,200,500] %}<option value="{{n}}" {{ 'selected' if page_size==n }}>{{n}}</option>{% endfor %}
+    </select>
+  </div>
+
+  <div class="col-sm-12 col-lg-3 text-end">
+    <button class="btn btn-primary me-2" type="submit"><i class="fas fa-search"></i> تطبيق</button>
+    {% if cols|length > 0 %}
+      <a class="btn btn-success" href="{{ url_for('machine_reports_bp.export_excel', category=category, q=q, search_in=search_in) }}"><i class="fas fa-file-export"></i> تصدير Excel</a>
+    {% endif %}
+  </div>
+</form>
+
+{% if cols|length == 0 %}
+  <div class="alert alert-info">لا توجد بيانات لعرضها. {% if is_admin %}قم بالاستيراد أولاً.{% endif %}</div>
+{% else %}
+  <div class="data-table-wrap">
+    <div class="table-responsive">
+      <table class="table table-sm table-striped table-hover table-bordered data-table align-middle text-center">
+        <thead class="table-light">
+          <tr>{% for c in cols %}<th class="border">{{ c }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>{% for c in cols %}<td class="border">{{ r.get(c,'') }}</td>{% endfor %}</tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <nav class="mt-3" aria-label="الصفحات">
+    <ul class="pagination justify-content-center">
+      <li class="page-item {% if not pagination.prev %}disabled{% endif %}">
+        <a class="page-link" href="{{ pagination.prev or '#' }}">السابق</a>
+      </li>
+      {% for p in pagination.first_pages %}
+      <li class="page-item {% if p.active %}active{% endif %}"><a class="page-link" href="{{ p.url }}">{{ p.n }}</a></li>
+      {% endfor %}
+      {% if pagination.show_ellipsis %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+      {% if pagination.last %}
+        <li class="page-item {% if pagination.last.active %}active{% endif %}"><a class="page-link" href="{{ pagination.last.url }}">{{ pagination.last.n }}</a></li>
+      {% endif %}
+      <li class="page-item {% if not pagination.next %}disabled{% endif %}">
+        <a class="page-link" href="{{ pagination.next or '#' }}">التالي</a>
+      </li>
+    </ul>
+    <p class="text-center text-muted small mb-0">صفحة {{ pagination.page }} من {{ pagination.total_pages }}</p>
+  </nav>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  const initialCols = {{ (search_cols|default([], true))|tojson }};
+  const sel = document.getElementById('searchInSelect');
+  const orderInput = document.getElementById('orderCsvInput');
+
+  function rebuildOptions(cols) {
+    const current = sel?.value;
+    if (!sel) return;
+    sel.innerHTML = '';
+    const optAll = new Option('الكل (كل الأعمدة)', 'all');
+    sel.add(optAll);
+    (cols || initialCols || []).forEach(c => sel.add(new Option(c, c)));
+    if ([...sel.options].some(o => o.value === current)) sel.value = current;
+  }
+
+  if (orderInput) {
+    orderInput.addEventListener('input', () => {
+      const csv = (orderInput.value || '').split(',').map(s => s.trim()).filter(Boolean);
+      if (csv.length) rebuildOptions(csv); else rebuildOptions(initialCols);
+    });
+  }
+})();
+</script>
+{% endblock %}

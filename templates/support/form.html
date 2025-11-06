@@ -1,0 +1,618 @@
+{% extends "base.html" %}
+{% block title %}{{ title or ('إضافة - الدعم الفني' if mode=='create' else 'تعديل - الدعم الفني') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+    <h1 class="h4 mb-0 text-primary">{{ title or ('إضافة سجل - الدعم الفني' if mode=='create' else 'تعديل سجل - الدعم الفني') }}</h1>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('support_bp.index') }}">
+            <i class="fas fa-list me-2"></i>رجوع للقائمة
+        </a>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('main_bp.dashboard') }}">
+            <i class="fas fa-home me-2"></i>الصفحة الرئيسية
+        </a>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="mb-4">
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'danger' or category == 'warning' else 'success' }} py-2 mb-2 small" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>{{ message | safe }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<form method="post" id="mainForm" class="card shadow-lg border-0">
+    {% if mode == 'edit' %}
+        <input type="hidden" name="record_id" id="record_id" value="{{ rec.id }}">
+    {% endif %}
+    <input type="hidden" name="force_bank_save" id="h_force_save" value="0">
+    
+    <div class="card-body p-4">
+        
+        <h5 class="card-title text-primary mb-3 pb-2 border-bottom"><i class="fas fa-edit me-2"></i>البيانات الأساسية للسجل</h5>
+        <div class="row g-3">
+            
+            <div class="col-12 col-md-6 col-lg-4">
+                <label for="name" class="form-label small fw-bold">اسم المخبز/التاجر <span class="text-danger">*</span></label>
+                <input type="text" id="name" name="name" class="form-control form-control-sm" required value="{{ rec.name if rec else '' }}">
+            </div>
+
+            <div class="col-12 col-md-6 col-lg-4">
+                <label for="code" class="form-label small fw-bold">الكود (أرقام، مسافات، -، /) (اختياري)</label>
+                <input 
+                    type="text" 
+                    id="code" 
+                    name="code" 
+                    class="form-control form-control-sm text-start" 
+                    pattern="[A-Za-z0-9\s\/\-]*" 
+                    title="يجب إدخال أرقام وحروف إنجليزية ومسافات ورموز / و -" 
+                    value="{{ rec.code if rec else '' }}"
+                >
+            </div>
+
+            <div class="col-12 col-md-6 col-lg-4">
+                <label for="work_type" class="form-label small fw-bold">العمل المحقق <span class="text-danger">*</span></label>
+                <select id="work_type" name="work_type" class="form-select form-select-sm" required>
+                    <option value="">-- اختر المطلوب --</option>
+                    <option value="أعمال دعم عامة" {% if rec and rec.work_type == 'أعمال دعم عامة' %}selected{% endif %}>أعمال دعم عامة</option>
+                    <option value="حسابات بنكية" {% if rec and rec.work_type == 'حسابات بنكية' %}selected{% endif %}>حسابات بنكية</option>
+                </select>
+            </div>
+
+            <div class="col-12 col-md-6 col-lg-4" id="div_type_select" style="display:none;">
+                <label for="type_select" class="form-label small fw-bold">النوع</label>
+                <select id="type_select" name="type_select" class="form-select form-select-sm">
+                    <option value="">-- اختر النوع --</option>
+                </select>
+                {% if rec and rec.type_select %}
+                    <input type="hidden" id="initial_type_select" value="{{ rec.type_select }}">
+                {% endif %}
+            </div>
+            
+        </div>
+
+        <hr class="my-4">
+        
+        <h5 class="card-title text-primary mb-3 pb-2 border-bottom"><i class="fas fa-file-alt me-2"></i>التفاصيل والملاحظات</h5>
+        <div class="row g-3">
+            
+            <div class="col-12 col-md-6">
+                <label for="sender_email_name" class="form-label small fw-bold">اسم/بريد مرسل البيانات</label>
+                <input type="text" id="sender_email_name" name="sender_email_name" class="form-control form-control-sm" value="{{ rec.sender_email_name if rec else '' }}">
+            </div>
+            
+            <div class="col-12 col-md-6">
+                <label for="postal_id" class="form-label small fw-bold">رقم البريد (اختياري)</label>
+                <input 
+                    type="text" 
+                    id="postal_id" 
+                    name="postal_id" 
+                    class="form-control form-control-sm text-start" 
+                    pattern="[0-9]*" 
+                    onkeypress="return (event.charCode >= 48 && event.charCode <= 57)" 
+                    title="يجب إدخال أرقام فقط" 
+                    value="{{ rec.postal_id if rec else '' }}">
+            </div>
+            
+            <div class="col-12" id="work_detail_container">
+                <label for="work_detail" class="form-label small fw-bold">تفاصيل العمل المطلوب / أعمال دعم عامة</label>
+                <textarea id="work_detail" name="work_detail" class="form-control form-control-sm" rows="2">{{ rec.work_detail if rec else '' }}</textarea>
+            </div>
+
+            <div class="col-12">
+                <label for="notes" class="form-label small fw-bold">ملاحظات (داخلي)</label>
+                <textarea id="notes" name="notes" class="form-control form-control-sm" rows="2">{{ rec.notes if rec else '' }}</textarea>
+            </div>
+        </div>
+        
+        <hr class="my-4">
+
+        <h5 class="card-title text-primary mb-3 pb-2 border-bottom"><i class="fas fa-university me-2"></i>بيانات الحساب البنكي المُخزَّنة</h5>
+        
+        <div class="row g-3" id="bank_data_display_section">
+            
+            <div class="col-12 col-md-6 col-lg-4">
+                <label class="form-label small">Request Number</label>
+                <input type="text" id="bank_request_number" name="bank_request_number" class="form-control form-control-sm bg-light"
+                       readonly value="{{ rec.bank_request_number if rec else '' }}" placeholder="- -">
+            </div>
+            
+            <div class="col-12 col-md-6 col-lg-4">
+                <label class="form-label small"><span id="display_bakery_code_label">Bakery Code</span></label>
+                <input type="text" id="bank_bakery_code" name="bank_bakery_code" class="form-control form-control-sm bg-light"
+                       readonly value="{{ rec.bank_bakery_code if rec else '' }}" placeholder="- -">
+            </div>
+            
+            <div class="col-12 col-md-6 col-lg-4">
+                <label class="form-label small">BANK_ID</label>
+                <input type="text" id="bank_id" name="bank_id" class="form-control form-control-sm bg-light"
+                       readonly value="{{ rec.bank_id if rec else '' }}" placeholder="- -">
+            </div>
+            
+            <div class="col-12 col-md-6 col-lg-4">
+                <label class="form-label small">BANK_ACC_NUMBER (يبدأ بـ EG)</label>
+                <input type="text" id="bank_acc_number" name="bank_acc_number" class="form-control form-control-sm bg-light"
+                       readonly value="{{ rec.bank_acc_number if rec else '' }}" placeholder="- -">
+            </div>
+            
+            <div class="col-12 col-md-6 col-lg-4">
+                <label class="form-label small">BANK_ACC_NAME</label>
+                <input type="text" id="bank_acc_name" name="bank_acc_name" class="form-control form-control-sm bg-light"
+                       readonly value="{{ rec.bank_acc_name if rec else '' }}" placeholder="- -">
+            </div>
+            
+            <div class="col-12 col-md-6 col-lg-4">
+                <label class="form-label small">National ID</label>
+                <input type="text" id="bank_national_id" name="bank_national_id" class="form-control form-control-sm bg-light"
+                       readonly value="{{ rec.bank_national_id if rec else '' }}" placeholder="- -">
+            </div>
+            
+            <input type="hidden" name="bank_data_saved" id="h_bank_saved" value="{{ '1' if rec.bank_request_number else '0' }}">
+        </div>
+        
+        <div class="row g-3 align-items-end mt-2">
+            <div class="col-12 col-md-4 d-grid offset-md-8">
+                <button type="button" class="btn btn-outline-info btn-sm fw-bold" id="btn_manual_bank_modal" data-bs-toggle="modal" data-bs-target="#bankModal" style="display:none;">
+                    <i class="fas fa-edit me-2"></i>فتح نافذة بيانات البنك
+                </button>
+            </div>
+            
+            <div class="col-12" id="bank_data_warning" style="display:none;">
+                <div class="alert alert-warning py-2 mb-0 small" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i><strong>تنبيه:</strong> يجب إدخال وحفظ بيانات الحساب البنكي من النافذة المنبثقة أولاً لإلغاء تعطيل زر الحفظ.
+                </div>
+            </div>
+        </div>
+        
+        <hr class="my-4">
+
+        <h5 class="card-title text-primary mb-3 pb-2 border-bottom"><i class="fas fa-bell me-2"></i>إعدادات التذكير (اختياري)</h5>
+        <div class="row g-3">
+            <div class="col-12 col-md-8">
+                <label for="reminder_message" class="form-label small fw-bold">رسالة التذكير</label>
+                <input type="text" id="reminder_message" name="reminder_message" class="form-control form-control-sm" value="{{ rec.reminder_message if rec else '' }}">
+            </div>
+
+            <div class="col-12 col-md-4">
+                <label for="reminder_at_local" class="form-label small fw-bold">موعد التذكير (بالتوقيت المحلي)</label>
+                <input type="datetime-local" id="reminder_at_local" name="reminder_at_local" class="form-control form-control-sm" value="{{ rec.reminder_at_local if rec else '' }}">
+            </div>
+        </div>
+
+    </div> 
+
+    <div class="card-footer d-flex justify-content-end gap-2 bg-light p-3">
+        <button type="submit" class="btn btn-success px-4 shadow-sm btn-sm fw-bold" id="btnSave">
+            <i class="fas fa-save me-2"></i>حفظ السجل
+        </button>
+    </div>
+</form>
+
+<div class="modal fade" id="bankModal" tabindex="-1" aria-labelledby="bankModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-info shadow-lg">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="bankModalLabel"><i class="fas fa-money-check-alt me-2"></i>إدخال بيانات الحساب البنكي</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body row g-3 p-4">
+                    <p class="text-muted small border-bottom pb-2">
+                        يرجى إدخال البيانات المطلوبة بعناية. حقول الأرقام لا تقبل الحروف.
+                        <br>
+                        <span class="fw-bold text-danger">تنبيه:</span> حقل **National ID** يجب أن يكون **14 رقمًا** بالضبط. حقل **BANK\_ID** يقبل **حروف إنجليزية كبيرة فقط**.
+                        <br>
+                        <span class="fw-bold text-dark">جميع الحقول هنا إلزامية إذا تم فتح النافذة.</span>
+                    </p>
+                
+                <div class="col-12 col-md-6">
+                    <label for="m_req" class="form-label small">Request Number <span class="text-danger">*</span></label>
+                    <input 
+                        type="text" 
+                        id="m_req" 
+                        class="form-control form-control-sm text-start" 
+                        pattern="[0-9]*" 
+                        onkeypress="return (event.charCode >= 48 && event.charCode <= 57)"
+                        title="أرقام فقط" 
+                        value="{{ rec.bank_request_number if rec else '' }}" 
+                        placeholder="أرقام فقط" 
+                        required>
+                </div>
+                
+                <div class="col-12 col-md-6">
+                    <label for="m_bak" class="form-label small"><span id="bakery_code_label">Bakery_Code</span> <span class="text-danger">*</span></label>
+                    <input 
+                        type="text" 
+                        id="m_bak" 
+                        class="form-control form-control-sm text-start" 
+                        pattern="[0-9]*" 
+                        onkeypress="return (event.charCode >= 48 && event.charCode <= 57)"
+                        title="أرقام فقط" 
+                        value="{{ rec.bank_bakery_code if rec else '' }}" 
+                        placeholder="أرقام فقط" 
+                        required>
+                </div>
+                
+                <div class="col-12 col-md-6">
+                    <label for="m_id" class="form-label small">BANK_ID <span class="text-danger">*</span></label>
+                    <input 
+                        type="text" 
+                        id="m_id" 
+                        class="form-control form-control-sm text-start" 
+                        pattern="[A-Z]*" 
+                        oninput="this.value = this.value.toUpperCase()" 
+                        title="حروف إنجليزية كبيرة فقط" 
+                        value="{{ rec.bank_id if rec else '' }}" 
+                        required>
+                </div>
+                
+                <div class="col-12 col-md-6">
+                    <label for="m_acc" class="form-label small">BANK_ACC_NUMBER (ما بعد EG) <span class="text-danger">*</span></label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light text-primary fw-bold" id="eg-prefix">EG</span>
+                        <input 
+                            type="text" 
+                            id="m_acc" 
+                            class="form-control text-start" 
+                            pattern="[0-9]*" 
+                            onkeypress="return (event.charCode >= 48 && event.charCode <= 57)"
+                            title="أرقام فقط بعد EG" 
+                            value="{{ rec.bank_acc_number[2:] if rec and rec.bank_acc_number and rec.bank_acc_number.upper().startswith('EG') else '' }}" 
+                            placeholder="أرقام فقط" 
+                            required>
+                    </div>
+                    <small class="text-muted small">أدخل الأرقام فقط، سيتم إضافة EG تلقائياً في البداية.</small>
+                </div>
+                
+                <div class="col-12">
+                    <label for="m_name" class="form-label small">BANK_ACC_NAME <span class="text-danger">*</span></label>
+                    <input type="text" id="m_name" class="form-control form-control-sm" value="{{ rec.bank_acc_name if rec else '' }}" required>
+                </div>
+                
+                <div class="col-12">
+                    <label for="m_nid" class="form-label small">National ID number <span class="text-danger">*</span></label>
+                    <input 
+                        type="text" 
+                        id="m_nid" 
+                        class="form-control form-control-sm text-start" 
+                        pattern="\d{14}" 
+                        maxlength="14" 
+                        onkeypress="return (event.charCode >= 48 && event.charCode <= 57)"
+                        title="يجب إدخال 14 رقمًا فقط" 
+                        value="{{ rec.bank_national_id if rec else '' }}" 
+                        placeholder="14 رقمًا فقط" 
+                        required>
+                </div>
+                <div id="modal-error-message" class="col-12 text-danger small pt-2" style="display:none;"></div>
+
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-info btn-sm fw-bold" id="btnBankSave"><i class="fas fa-save me-2"></i>حفظ ونقل البيانات</button>
+                </div>
+            </div>
+        </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // الحصول على عناصر DOM
+        const workTypeSelect = document.getElementById('work_type');
+        const divTypeSelect = document.getElementById('div_type_select');
+        const typeSelect = document.getElementById('type_select');
+        const initialTypeInput = document.getElementById('initial_type_select');
+        const workDetailContainer = document.getElementById('work_detail_container');
+        const workDetailTextarea = document.getElementById('work_detail');
+        const bankCodeLabel = document.getElementById('bakery_code_label'); // في المودال
+        const displayBankCodeLabel = document.getElementById('display_bakery_code_label'); // في النموذج الرئيسي
+        const bankModalEl = document.getElementById('bankModal');
+        const modalErrorMessage = document.getElementById('modal-error-message');
+        const btnManualBankModal = document.getElementById('btn_manual_bank_modal');
+        const btnSave = document.getElementById('btnSave');
+        const bankDataWarning = document.getElementById('bank_data_warning');
+        const hBankSaved = document.getElementById('h_bank_saved');
+        const hForceSave = document.getElementById('h_force_save'); // 💥 حقل إجبار الحفظ الجديد
+        const recordIdInput = document.getElementById('record_id'); // حقل ID في حالة التعديل
+
+        // حقول النموذج المقروءة فقط 
+        const dispReq = document.getElementById('bank_request_number');
+        const dispBak = document.getElementById('bank_bakery_code');
+        const dispId = document.getElementById('bank_id');
+        const dispAcc = document.getElementById('bank_acc_number');
+        const dispName = document.getElementById('bank_acc_name');
+        const dispNid = document.getElementById('bank_national_id');
+
+        // دالة لتفعيل/تعطيل زر الحفظ وبقية النموذج وإظهار/إخفاء تفاصيل العمل
+        function toggleFormState(isBankRequired, isBankDataSaved) {
+            // إذا كان نوع العمل "حسابات بنكية" والبيانات لم تُحفظ بعد: يتم تعطيل زر الحفظ وإظهار التحذير
+            const shouldDisable = isBankRequired && !isBankDataSaved;
+            
+            btnSave.disabled = shouldDisable;
+            bankDataWarning.style.display = shouldDisable ? 'block' : 'none';
+
+            // إظهار/إخفاء تفاصيل العمل
+            if (isBankRequired) {
+                workDetailContainer.style.display = 'none';
+                // نحافظ على القيمة في وضع التعديل إذا كانت موجودة، وفي وضع الإنشاء نضع قيمة افتراضية
+                if (workDetailTextarea.value.trim() === '' || workDetailTextarea.value.trim() === 'بيانات بنكية مُعبأة') {
+                    workDetailTextarea.value = 'بيانات بنكية مُعبأة';
+                }
+            } else {
+                workDetailContainer.style.display = 'block';
+                // إذا كانت القيمة الافتراضية مسجلة، نقوم بمسحها ليعيد المستخدم إدخال التفاصيل في حالة العمل العام
+                if (workDetailTextarea.value.trim() === 'بيانات بنكية مُعبأة') {
+                    workDetailTextarea.value = '';
+                }
+            }
+        }
+
+        // دالة لفتح المودال (مع إعادة تحميل القيم الموجودة)
+        function openBankModal() {
+            const modalInstance = new bootstrap.Modal(bankModalEl);
+            
+            // تحميل القيم الموجودة من الحقول المرئية (المقروءة فقط) إلى المودال قبل فتحه
+            document.getElementById('m_req').value  = dispReq.value;
+            document.getElementById('m_bak').value  = dispBak.value;
+            document.getElementById('m_id').value   = dispId.value;
+            
+            // BANK_ACC_NUMBER: يتم تخزين الرقم فقط (ما بعد EG)
+            const storedAccNum = dispAcc.value;
+            document.getElementById('m_acc').value  = storedAccNum.toUpperCase().startsWith('EG') ? storedAccNum.substring(2) : '';
+            
+            document.getElementById('m_name').value = dispName.value;
+            document.getElementById('m_nid').value  = dispNid.value;
+
+            // إزالة رسالة الخطأ السابقة
+            modalErrorMessage.style.display = 'none';
+            
+            // إزالة فئات is-invalid عند الفتح
+            const fields = [document.getElementById('m_req'), document.getElementById('m_bak'), document.getElementById('m_id'), document.getElementById('m_acc'), document.getElementById('m_name'), document.getElementById('m_nid')];
+            fields.forEach(field => field.classList.remove('is-invalid'));
+
+            // 💥 التأكد من أن حقل إجبار الحفظ هو 0 عند فتح النافذة
+            hForceSave.value = '0'; 
+
+            modalInstance.show();
+        }
+
+        // تحديث خيارات النوع بناءً على المطلوب تنفيذه (work_type)
+        function updateTypeOptions(action) {
+            typeSelect.innerHTML = '<option value="">-- اختر النوع --</option>';
+            let options = [];
+
+            if (action === 'أعمال دعم عامة') {
+                options = [
+                    { value: 'مخبز', text: 'مخبز' },
+                    { value: 'استبدال', text: 'استبدال' },
+                    { value: 'تموين', text: 'تموين' }
+                ];
+            } else if (action === 'حسابات بنكية') {
+                options = [
+                    { value: 'مخبز', text: 'مخبز' },
+                    { value: 'استبدال', text: 'استبدال' }
+                ];
+            }
+            
+            // تحديد القيمة المحفوظة إذا كانت موجودة
+            const savedType = initialTypeInput ? initialTypeInput.value : '';
+
+            options.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt.value;
+                option.textContent = opt.text;
+                if (savedType === opt.value) {
+                    option.selected = true;
+                }
+                typeSelect.appendChild(option);
+            });
+            
+            typeSelect.required = false;  
+        }
+
+        // تحديث تسمية حقل الكود في المودال والنموذج الرئيسي
+        function updateModalCodeLabel(type) {
+            let label = 'Bakery Code';
+            if (type === 'استبدال' || type === 'تموين') {
+                label = 'Grocer Code';
+            }
+            bankCodeLabel.innerHTML = `${label} <span class="text-danger">*</span>`; // للمودال
+            displayBankCodeLabel.textContent = label; // للنموذج الرئيسي
+        }
+
+        // **المستمع لنوع العمل المحقق (Work Type)**
+        workTypeSelect.addEventListener('change', () => {
+            const selectedAction = workTypeSelect.value;
+            const isBankRequired = selectedAction === 'حسابات بنكية';
+            const isBankDataSaved = hBankSaved.value === '1';
+            
+            if (selectedAction === 'أعمال دعم عامة' || isBankRequired) {
+                divTypeSelect.style.display = 'block';
+                updateTypeOptions(selectedAction);
+                
+                btnManualBankModal.style.display = isBankRequired ? 'grid' : 'none';
+                
+            } else {
+                // في حالة عدم اختيار work_type
+                divTypeSelect.style.display = 'none';
+                typeSelect.value = '';
+                btnManualBankModal.style.display = 'none';
+            }
+            
+            // تحديث حالة النموذج بناءً على ما إذا كانت بيانات البنك مطلوبة ومسجلة
+            toggleFormState(isBankRequired, isBankDataSaved);
+            updateModalCodeLabel(typeSelect.value);
+        });
+        
+        // **المستمع للنوع (Type Select)**
+        typeSelect.addEventListener('change', () => {
+            const selectedType = typeSelect.value;
+            const selectedAction = workTypeSelect.value;
+            
+            updateModalCodeLabel(selectedType);
+
+            const isBankRequired = selectedAction === 'حسابات بنكية';
+            const isBankDataSaved = hBankSaved.value === '1';
+
+            // التعديل: إذا تم اختيار 'الحسابات البنكية' واختيار نوع وكانت البيانات غير محفوظة، افتح المودال تلقائيًا
+            if (isBankRequired && !isBankDataSaved && selectedType !== '') {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    openBankModal(); 
+                }
+            }  
+            
+            toggleFormState(isBankRequired, isBankDataSaved);
+        });
+
+
+        // **المستمع لزر فتح نافذة بيانات البنك**
+        btnManualBankModal.addEventListener('click', openBankModal);
+
+
+        // **المستمع لزر حفظ بيانات البنك داخل المودال**
+        // 💥 تم تعديل الدالة لتصبح async للتعامل مع AJAX
+        document.getElementById('btnBankSave').addEventListener('click', async ()=>{
+            // حقول المودال (المدخلات)
+            const m_req = document.getElementById('m_req');
+            const m_bak = document.getElementById('m_bak');
+            const m_id = document.getElementById('m_id');
+            const m_acc = document.getElementById('m_acc');
+            const m_name = document.getElementById('m_name');
+            const m_nid = document.getElementById('m_nid');
+            
+            // 1. التحقق من صلاحية الحقول المطلوبة (Validation)
+            const fields = [m_req, m_bak, m_id, m_acc, m_name, m_nid];
+            let isValid = true;
+            let errorMessage = '';
+
+            // 💥 إزالة فئات is-invalid قبل التحقق
+            fields.forEach(field => field.classList.remove('is-invalid'));
+
+            for (const field of fields) {
+                if (!field.checkValidity()) {
+                    isValid = false;
+                    field.classList.add('is-invalid');
+                    
+                    if (field.id === 'm_nid' && field.value.length !== 14) {
+                        errorMessage = 'الرقم القومي (National ID) يجب أن يتكون من 14 رقمًا بالضبط.';
+                    } else if (field.id === 'm_id' && !field.value.toUpperCase().match(/^[A-Z]*$/)) {
+                        errorMessage = 'كود البنك (BANK_ID) يجب أن يحتوي على حروف إنجليزية كبيرة فقط.';
+                    } else if (field.value === '') {
+                        errorMessage = 'يرجى إدخال جميع الحقول المطلوبة.';
+                    } else {
+                        errorMessage = 'يرجى التحقق من صحة المدخلات. تأكد من إدخال أرقام فقط حيثما هو مطلوب وحروف كبيرة في BANK_ID.';
+                    }
+                    // يكفي إظهار أول خطأ
+                    break;
+                }
+            }
+            
+            if (!isValid) {
+                modalErrorMessage.textContent = errorMessage;
+                modalErrorMessage.style.display = 'block';
+                return;
+            }
+
+            // 💥 2. التحقق من التكرار عبر AJAX (BANK_ACC_NUMBER فقط)
+            const bankAccNumber = 'EG' + m_acc.value.trim();
+            let proceedWithSave = true;
+            modalErrorMessage.style.display = 'none'; // إخفاء الرسائل السابقة
+            hForceSave.value = '0'; // إعادة تعيين إجبار الحفظ
+
+            if (workTypeSelect.value === 'حسابات بنكية') {
+                try {
+                    document.getElementById('btnBankSave').disabled = true;
+
+                    const formData = new FormData();
+                    formData.append('bank_acc_number', bankAccNumber);
+                    
+                    // 💥💥 التعديل هنا: إرسال record_id في حالة التعديل 💥💥
+                    if (recordIdInput) {
+                        formData.append('record_id', recordIdInput.value);
+                    }
+                    
+                    const response = await fetch("{{ url_for('support_bp.check_bank_data') }}", {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    document.getElementById('btnBankSave').disabled = false;
+                    
+                    const result = await response.json();
+                    
+                    if (!result.ok && result.is_duplicate && result.field === 'bank_acc_number') {
+                        // حالة التكرار: إظهار رسالة الخطأ وطلب التأكيد
+                        modalErrorMessage.textContent = result.message;
+                        modalErrorMessage.style.display = 'block';
+                        m_acc.classList.add('is-invalid'); // تمييز الحقل المكرر
+                        
+                        // 💥 رسالة التأكيد لعدم تفريغ الشاشة
+                        const confirmMessage = result.message + "\n\nاضغط 'موافق' للحفظ رغم التكرار، أو 'إلغاء' للتعديل.";
+                        if (!confirm(confirmMessage)) {
+                            // إذا ألغى المستخدم، لا نتابع ونبقى في النافذة المنبثقة
+                            proceedWithSave = false;
+                            hForceSave.value = '0'; 
+                        } else {
+                            // إذا وافق المستخدم، نضبط حقل إجبار الحفظ ونستمر
+                            hForceSave.value = '1';
+                        }
+                    } else {
+                        // لا يوجد تكرار (أو التكرار هو للسجل الحالي نفسه وتم استثناؤه)
+                        hForceSave.value = '0';
+                    }
+                    
+                } catch (error) {
+                    document.getElementById('btnBankSave').disabled = false;
+                    console.error('AJAX Error:', error);
+                    // في حال فشل الاتصال، يتم الإفساح عن الحفظ مع تحذير
+                    modalErrorMessage.textContent = 'حدث خطأ أثناء التحقق من التكرار. سيتم الإفساح عن الحفظ.';
+                    modalErrorMessage.style.display = 'block';
+                    hForceSave.value = '1'; // نعتبره خطأ ويسمح بالحفظ لتجنب الإغلاق
+                }
+            }
+
+
+            // 💥 3. المتابعة بالحفظ إذا لم يكن هناك تكرار أو تم التأكيد
+            if (proceedWithSave) {
+                // نقل القيم من حقول المودال إلى حقول النموذج الرئيسية (المقروءة فقط)
+                dispReq.value  = m_req.value.trim();
+                dispBak.value  = m_bak.value.trim();
+                dispId.value   = m_id.value.trim().toUpperCase();
+                dispAcc.value  = bankAccNumber; // دمج EG 
+                dispName.value = m_name.value.trim();
+                dispNid.value  = m_nid.value.trim();
+
+                // تحديث حالة الحفظ
+                hBankSaved.value = '1';
+                
+                // إلغاء تعطيل النموذج الرئيسي (لأن البيانات أصبحت مسجلة)
+                toggleFormState(true, true);
+
+                // إغلاق المودال
+                if (window.bootstrap){
+                    bootstrap.Modal.getInstance(bankModalEl)?.hide();
+                }
+            }
+        });
+        
+        // قم بتشغيل المنطق الأولي عند تحميل الصفحة
+        window.onload = () => {
+            // 1. قم بتشغيل مستمع work_type لضبط حالة الأقسام ويملأ خيارات النوع
+            if (workTypeSelect.value) {
+                workTypeSelect.dispatchEvent(new Event('change'));
+            } else {
+                // ضمان تفعيل زر الحفظ إذا لم يكن هناك نوع عمل محدد يتطلب بيانات بنكية
+                toggleFormState(false, true); 
+            }
+
+            // 2. إذا كانت هناك قيمة محملة للنوع، قم بتشغيل مستمع النوع لتحديث التسميات وحالة زر الحفظ
+            if (typeSelect.value) {
+                typeSelect.dispatchEvent(new Event('change'));
+            }
+        };
+    });
+</script>
+{% endblock %}

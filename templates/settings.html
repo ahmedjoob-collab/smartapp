@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}الإعدادات العامة{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">الإعدادات العامة</h1>
+  <a class="btn btn-light" href="{{ url_for('main_bp.dashboard') }}">
+    <i class="fas fa-home"></i> الصفحة الرئيسية
+  </a>
+  
+  {% if readonly %}
+    <span class="badge bg-secondary">وضع القراءة فقط</span>
+  {% endif %}
+</div>
+
+<div class="row g-4" dir="rtl">
+  <!-- تغيير صوت رسالة التذكير -->
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h5 class="card-title mb-3">
+          <i class="fas fa-bell me-2"></i> تغيير صوت رسالة التذكير
+        </h5>
+        {% if sound_url %}
+          <div class="mb-3">
+            <label class="form-label">الصوت الحالي:</label>
+            <audio controls src="{{ sound_url }}" style="width:100%"></audio>
+          </div>
+        {% else %}
+          <div class="text-muted mb-3">لا يوجد صوت محدد حالياً.</div>
+        {% endif %}
+
+        <form method="post" action="{{ url_for('settings_bp.reminder_sound') }}" enctype="multipart/form-data">
+          <div class="mb-3 text-start">
+            <label class="form-label">اختر ملف صوتي (MP3/WAV)</label>
+            <input type="file" name="sound_file" accept="audio/*" class="form-control" {% if readonly %}disabled{% endif %} required>
+          </div>
+          <button type="submit" class="btn btn-primary" {% if readonly %}disabled{% endif %}>
+            <i class="fas fa-upload me-1"></i> تحديث الصوت
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- تغيير مكان النسخة الاحتياطية -->
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h5 class="card-title mb-3">
+          <i class="fas fa-folder-open me-2"></i> تغيير مكان النسخة الاحتياطية
+        </h5>
+        <form method="post" action="{{ url_for('settings_bp.update_backup_dir') }}">
+          <div class="mb-3 text-start">
+            <label class="form-label">المسار الحالي</label>
+            <input type="text" name="backup_dir" class="form-control" value="{{ settings.get('backup_dir', '') }}" placeholder="مثال: D:\\TS\\BACKUP" {% if readonly %}disabled{% endif %} required>
+            <div class="form-text">سيتم حفظ النسخ اليومية في هذا المجلد.</div>
+          </div>
+          <button type="submit" class="btn btn-primary" {% if readonly %}disabled{% endif %}>
+            <i class="fas fa-save me-1"></i> حفظ المجلد
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- تصدير/استيراد نسخة احتياطية -->
+  <div class="col-12">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <h5 class="card-title mb-3">
+          <i class="fas fa-database me-2"></i> النسخة الاحتياطية
+        </h5>
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-success" href="{{ url_for('settings_bp.export_backup') }}" {% if readonly %}aria-disabled="true" style="pointer-events:none;opacity:.6"{% endif %}>
+            <i class="fas fa-download me-1"></i> تصدير نسخة احتياطية
+          </a>
+
+          <form class="d-inline-flex align-items-center gap-2" method="post" action="{{ url_for('settings_bp.import_backup') }}" enctype="multipart/form-data">
+            <input type="file" name="backup_file" accept=".db" class="form-control" style="max-width:320px" {% if readonly %}disabled{% endif %} required>
+            <button type="submit" class="btn btn-warning" {% if readonly %}disabled{% endif %}>
+              <i class="fas fa-upload me-1"></i> استيراد نسخة احتياطية
+            </button>
+          </form>
+        </div>
+        <div class="text-muted small mt-2">التصدير يقوم بإنشاء ملف قاعدة بيانات SQLite للتحميل. الاستيراد يستبدل قاعدة البيانات الحالية بمحتوى الملف المرفوع.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

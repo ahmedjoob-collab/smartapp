@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}استيراد - {{ category_label }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+  <h1 class="h5 mb-0">استيراد ملفات - {{ category_label }}</h1>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary" href="{{ url_for('machine_reports_bp.category_view', category=category) }}">
+      <i class="fas fa-search"></i> الذهاب لنتائج البحث
+    </a>
+    <a class="btn btn-light" href="{{ url_for('main_bp.dashboard') }}">
+      <i class="fas fa-home"></i> الصفحة الرئيسية
+    </a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <div class="alert alert-info mb-3">
+      <div class="fw-bold mb-1">ترتيب الملفات وسياسة الدمج:</div>
+      <ol class="mb-2">
+        <li><strong>الملف 1 (المسلسلات)</strong> — الأساس، نحافظ على كل صفوفه (حتى لو مكررة).</li>
+        <li><strong>ملفات 2، 3، 4</strong> — يتم الدمج على (<strong>رقم العميل</strong> + <strong>اسم العميل</strong>).</li>
+        <li><strong>ملفات 5، 6</strong> — يتم الدمج على (<strong>الادارة</strong> + <strong>المكتب</strong>).</li>
+      </ol>
+      <small class="text-muted">كل القيم تُخزن كنص، وتُزال العلامات العشرية، ويتم حذف الوقت من التاريخ تلقائيًا.</small>
+    </div>
+
+    <form class="row g-3 align-items-end" method="post" enctype="multipart/form-data"
+          action="{{ url_for('machine_reports_bp.import_files', category=category) }}">
+      <div class="col-12"><label class="form-label">اختَر حتى 6 ملفات (Excel/CSV) — متاح للأدمن فقط</label></div>
+
+      <div class="col-12 col-md-6 col-lg-3">
+        <label class="form-label">الملف 1 (المسلسلات) <span class="text-danger">*</span> — الأساس</label>
+        <input class="form-control" type="file" name="file1" accept=".xlsx,.xls,.csv" required>
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-3">
+        <label class="form-label">الملف 2 (البيانات) — اختياري | دمج على (رقم العميل + اسم العميل)</label>
+        <input class="form-control" type="file" name="file2" accept=".xlsx,.xls,.csv">
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-3">
+        <label class="form-label">الملف 3 — اختياري | دمج على (رقم العميل + اسم العميل)</label>
+        <input class="form-control" type="file" name="file3" accept=".xlsx,.xls,.csv">
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-3">
+        <label class="form-label">الملف 4 (بيانات إضافية) — اختياري | دمج على (رقم العميل + اسم العميل)</label>
+        <input class="form-control" type="file" name="file4" accept=".xlsx,.xls,.csv">
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-3">
+        <label class="form-label">الملف 5 — اختياري | دمج على (الادارة + المكتب)</label>
+        <input class="form-control" type="file" name="file5" accept=".xlsx,.xls,.csv">
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-3">
+        <label class="form-label">الملف 6 — اختياري | دمج على (الادارة + المكتب)</label>
+        <input class="form-control" type="file" name="file6" accept=".xlsx,.xls,.csv">
+      </div>
+
+      <div class="col-12">
+        <small class="text-muted">
+          • ملفات 2–4: يتم الدمج على (<strong>رقم العميل</strong> + <strong>اسم العميل</strong>). 
+          • ملفات 5–6: يتم الدمج على (<strong>الادارة</strong> + <strong>المكتب</strong>).
+        </small>
+      </div>
+
+      <div class="col-auto">
+        <button class="btn btn-primary">
+          <i class="fas fa-upload"></i> استيراد ودمج
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

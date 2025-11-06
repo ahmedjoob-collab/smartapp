@@ -1,0 +1,21 @@
+file,endpoint_ref,suggestion
+/mnt/data/project/smart_branch_admin_system_cleaned/routes/user_management.py,user_management_bp.manage_users,user_management.manage_users
+/mnt/data/project/smart_branch_admin_system_cleaned/venv/Lib/site-packages/flask/views.py,counter,
+/mnt/data/project/smart_branch_admin_system_cleaned/templates/add_user_with_sections.html,user_management_bp.manage_users,user_management.manage_users
+/mnt/data/project/smart_branch_admin_system_cleaned/templates/basic_customer_data.html,trader_services_bp.export_basic_customers) }},trader_services_bp.export_basic_customers
+/mnt/data/project/smart_branch_admin_system_cleaned/templates/clients.html,clients_bp.export_clients,clients_bp.clients
+/mnt/data/project/smart_branch_admin_system_cleaned/templates/data_upload.html,trader_services.view_data,trader_services_bp.frequent_visitors
+/mnt/data/project/smart_branch_admin_system_cleaned/templates/data_view.html,trader_services.export_uploaded_file,clients.export_uploaded_file
+/mnt/data/project/smart_branch_admin_system_cleaned/templates/edit_user_with_sections.html,user_management_bp.manage_users,user_management.manage_users
+/mnt/data/project/smart_branch_admin_system_cleaned/templates/frequent_visitors.html,trader_services_bp.export_frequent_visitors) }},trader_services_bp.export_frequent_visitors
+/mnt/data/project/smart_branch_admin_system_cleaned/templates/layout.html,static,
+/mnt/data/project/smart_branch_admin_system_cleaned/templates/login.html,static,
+/mnt/data/project/smart_branch_admin_system_cleaned/templates/machine_report_generic.html,machine_reports_bp.export_machine_screen,machine_reports_bp.machine_reports
+/mnt/data/project/smart_branch_admin_system_cleaned/templates/manage_users.html,user_management_bp.add_user,user_management.add_user
+/mnt/data/project/smart_branch_admin_system_cleaned/templates/manage_users.html,user_management_bp.update_password,user_management.update_password
+/mnt/data/project/smart_branch_admin_system_cleaned/templates/manage_users.html,user_management_bp.update_role,user_management.update_role
+/mnt/data/project/smart_branch_admin_system_cleaned/templates/manage_users.html,user_management_bp.delete_user,user_management.delete_user
+/mnt/data/project/smart_branch_admin_system_cleaned/templates/users.html,user_management_bp.add_user,user_management.add_user
+/mnt/data/project/smart_branch_admin_system_cleaned/templates/users.html,user_management_bp.edit_user,user_management.list_users
+/mnt/data/project/smart_branch_admin_system_cleaned/templates/users.html,user_management_bp.delete_user,user_management.delete_user
+/mnt/data/project/smart_branch_admin_system_cleaned/templates/machine_reports/index.html,machine_reports_bp.machine_screen,machine_reports_bp.machine_reports

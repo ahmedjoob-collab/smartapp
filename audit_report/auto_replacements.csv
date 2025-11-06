@@ -1,0 +1,13 @@
+file
+routes/user_management.py
+templates/add_user_with_sections.html
+templates/basic_customer_data.html
+templates/clients.html
+templates/data_upload.html
+templates/data_view.html
+templates/edit_user_with_sections.html
+templates/frequent_visitors.html
+templates/machine_report_generic.html
+templates/manage_users.html
+templates/users.html
+templates/machine_reports/index.html

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}خطأ داخلي{% endblock %}
+{% block content %}
+<div class="text-center py-5">
+  <h1 class="display-6">💥 حدث خطأ بالخادم</h1>
+  <p class="text-muted">نأسف للإزعاج — جرّب مرة أخرى لاحقًا.</p>
+  <a class="btn btn-outline-primary" href="{{ url_for('main_bp.dashboard') if current_user.is_authenticated else url_for('auth_bp.login') }}">العودة</a>
+</div>
+{% endblock %}

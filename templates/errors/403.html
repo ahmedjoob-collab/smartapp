@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}403 ممنوع{% endblock %}
+{% block content %}
+<div class="text-center py-5">
+  <h1 class="display-6">🚫 403 - غير مسموح</h1>
+  <p class="text-muted">ليس لديك صلاحية للوصول إلى هذه الصفحة.</p>
+  <a class="btn btn-outline-primary" href="{{ url_for('main_bp.dashboard') if current_user.is_authenticated else url_for('auth_bp.login') }}">العودة</a>
+</div>
+{% endblock %}
