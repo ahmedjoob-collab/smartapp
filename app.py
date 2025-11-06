@@ -366,6 +366,19 @@ def create_app():
             db.session.add(admin)
             db.session.commit()
 
+        # ضبط كلمة مرور الأدمن من متغير بيئة إن وُجد (يساعد عند النشر)
+        try:
+            admin_pw = os.environ.get("ADMIN_PASSWORD") or os.environ.get("RAILWAY_ADMIN_PASSWORD")
+            if admin_pw:
+                admin = User.query.filter_by(username="admin").first()
+                if admin:
+                    admin.password_hash = generate_password_hash(admin_pw)
+                    db.session.commit()
+                    print("[Auth] Admin password updated from environment variable.")
+        except Exception as _ex:
+            # لا تُعطل التطبيق لو حدث خطأ أثناء التحديث
+            print(f"[Auth] Skipped admin password env update: {_ex}")
+
     # ===== المسارات العامة =====
     @app.route("/")
     def index():
