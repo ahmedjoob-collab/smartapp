@@ -14,16 +14,37 @@ def create_app():
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "change-me")
     
     # ===== إعداد قاعدة البيانات الذكي =====
+    # المنطق:
+    # 1️⃣ لو متغير DATABASE_URL موجود → استخدمه (عادة PostgreSQL أو MySQL)
+    # 2️⃣ لو السيرفر (Railway أو Render أو أي PaaS) بدون قاعدة خارجية → استخدم /tmp/
+    # 3️⃣ لو شغال محليًا → استخدم instance/database.db
+
     db_url = os.environ.get("DATABASE_URL")
+
     if db_url:
+        # 🟢 في حالة وجود PostgreSQL أو MySQL
+        # ملاحظة: بعض المنصات تضيف postgres:// بدل postgresql://
+        # وده بيعمل خطأ مع SQLAlchemy، فنصلحه هنا:
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
         app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+
     else:
-        data_dir = "/tmp"
-        if not os.path.exists(data_dir):
-            os.makedirs(data_dir, exist_ok=True)
-        db_path = os.path.join(data_dir, "database.db")
+        # 🔵 مفيش DATABASE_URL → يعني شغال محلي أو على سيرفر محدود
+        if os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("RENDER"):
+            # 🟠 في السيرفر، نستخدم /tmp (قابل للكتابة)
+            tmp_dir = "/tmp"
+            os.makedirs(tmp_dir, exist_ok=True)
+            db_path = os.path.join(tmp_dir, "database.db")
+        else:
+            # 🟣 في التشغيل المحلي، نستخدم instance/database.db
+            local_instance = os.path.join(BASE_DIR, "instance")
+            os.makedirs(local_instance, exist_ok=True)
+            db_path = os.path.join(local_instance, "database.db")
+
         app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
 
+    # إعداد SQLAlchemy
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     # ===== تهيئة قاعدة البيانات =====
