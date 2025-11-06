@@ -13,11 +13,17 @@ def create_app():
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "change-me")
     
-    # مسار قاعدة البيانات الموحد
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-        "DATABASE_URL",
-        "sqlite:///" + os.path.join(BASE_DIR, "instance", "database.db") 
-    )
+    # ===== إعداد قاعدة البيانات الذكي =====
+    db_url = os.environ.get("DATABASE_URL")
+    if db_url:
+        app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+    else:
+        data_dir = "/tmp"
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir, exist_ok=True)
+        db_path = os.path.join(data_dir, "database.db")
+        app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
+
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     # ===== تهيئة قاعدة البيانات =====
