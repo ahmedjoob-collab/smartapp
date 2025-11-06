@@ -4,7 +4,15 @@ import json
 
 def _settings_path(app) -> str:
     base_dir = os.path.abspath(os.path.dirname(__file__))
-    # project root is parent of utils
+    # على Railway/Render نستخدم /tmp لأنه قابل للكتابة في وقت التشغيل
+    if os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("RENDER"):
+        try:
+            os.makedirs("/tmp", exist_ok=True)
+        except Exception:
+            pass
+        return os.path.join("/tmp", 'app_settings.json')
+
+    # المشروع محليًا: مجلد instance داخل الجذر
     root = os.path.dirname(base_dir)
     return os.path.join(root, 'instance', 'app_settings.json')
 

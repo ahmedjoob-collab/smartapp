@@ -4,6 +4,12 @@ from flask import Flask, render_template, redirect, url_for, request, send_from_
 from flask_login import LoginManager, current_user
 from werkzeug.security import generate_password_hash
 from models import db, User  # models.py يُعرّف db = SQLAlchemy() و User
+# تحميل متغيرات البيئة من ملف .env (اختياري للتشغيل المحلي)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
 from sqlalchemy import text # تم استيرادها هنا لتجنب مشاكل النطاق
 
 def create_app():
@@ -423,6 +429,11 @@ def create_app():
 # كائن app العالمي لـ flask run
 app = create_app()
 
-# تشغيل مباشر: python app.py
+# تشغيل مباشر: python app.py (للتطوير المحلي فقط)
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    host = os.getenv("HOST") or "0.0.0.0"
+    port = int(os.getenv("PORT") or os.getenv("FLASK_RUN_PORT") or "5000")
+    # تعطيل الـ reloader لتفادي رسالة "* Restarting with stat" على منصات الاستضافة
+    debug_env = os.getenv("FLASK_DEBUG") or os.getenv("DEBUG") or os.getenv("FLASK_ENV")
+    debug = True if (str(debug_env).lower() in ("1","true","t","yes","y","debug","development")) else False
+    app.run(host=host, port=port, debug=debug, use_reloader=False)
